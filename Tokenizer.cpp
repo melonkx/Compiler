@@ -3,63 +3,55 @@
 #include <algorithm>
 #include <iostream>
 
-Tokenizer::Tokenizer(const std::string_view source) : source(source) {
+Tokenizer::Tokenizer() {
     using enum TokenType;
 
-    keywords["function"] = Function;
-    keywords["const"]   = Const;
-    keywords["var"]     = Var;
-    keywords["unsafe"]  = Unsafe;
-    keywords["if"]      = If;
-    keywords["else"]    = Else;
-    keywords["elif"]    = Elif;
-    keywords["then"]    = Then;
-    keywords["for"]     = For;
-    keywords["ranged"]  = Ranged;
-    keywords["in"]      = In;
-    keywords["enum"]    = Enum;
-    keywords["bitenum"] = BitEnum;
+    m_keywords["function"] = Function;
+    m_keywords["const"]   = Const;
+    m_keywords["var"]     = Var;
+    m_keywords["unsafe"]  = Unsafe;
+    m_keywords["if"]      = If;
+    m_keywords["else"]    = Else;
+    m_keywords["elif"]    = Elif;
+    m_keywords["then"]    = Then;
+    m_keywords["for"]     = For;
+    m_keywords["ranged"]  = Ranged;
+    m_keywords["in"]      = In;
+    m_keywords["enum"]    = Enum;
+    m_keywords["bitenum"] = BitEnum;
 
-    symbols[":"]    = Colon;
-    symbols[","]    = Comma;
-    symbols["="]    = Equal;
-    symbols["("]    = LeftParen;
-    symbols[")"]    = RightParen;
-    symbols["["]    = LeftSquareBracket;
-    symbols["]"]    = RightSquareBracket;
-    symbols["{"]    = LeftBracket;
-    symbols["}"]    = RightBracket;
+    m_symbols[":"]    = Colon;
+    m_symbols[","]    = Comma;
+    m_symbols["="]    = Equal;
+    m_symbols["("]    = LeftParen;
+    m_symbols[")"]    = RightParen;
+    m_symbols["["]    = LeftSquareBracket;
+    m_symbols["]"]    = RightSquareBracket;
+    m_symbols["{"]    = LeftBracket;
+    m_symbols["}"]    = RightBracket;
 
 
-    symbols["."]    = Dot;
-    symbols["..."]  = TripleDot;
+    m_symbols["."]    = Dot;
+    m_symbols["..."]  = TripleDot;
 
-    symbols["<"]    = LessThan;
-    symbols["<="]   = LessThanOrEqual;
-    symbols["=="]   = EqualEqual;
-    symbols[">"]    = GreaterThan;
-    symbols[">="]   = GreaterThanOrEqual;
-    symbols["!"]    = Bang;
-    symbols["~"]    = Tilde;
-    symbols["<<"]   = BitshiftLeft;
-    symbols[">>"]   = BitshiftRight;
+    m_symbols["<"]    = LessThan;
+    m_symbols["<="]   = LessThanOrEqual;
+    m_symbols["=="]   = EqualEqual;
+    m_symbols[">"]    = GreaterThan;
+    m_symbols[">="]   = GreaterThanOrEqual;
+    m_symbols["!"]    = Bang;
+    m_symbols["~"]    = Tilde;
+    m_symbols["<<"]   = BitshiftLeft;
+    m_symbols[">>"]   = BitshiftRight;
 
-    symbols["+"]    = Plus;
-    symbols["-"]    = Minus;
-    symbols["*"]    = Star;
-    symbols["/"]    = Slash;
-    symbols["+="]   = PlusEqual;
-    symbols["-="]   = MinusEqual;
-    symbols["*="]   = StarEqual;
-    symbols["/="]   = SlashEqual;
-}
-
-void Tokenizer::set_source(SourceFile* source) {
-    if (source == nullptr) {
-        throw std::invalid_argument("source");
-    }
-    
-    m_source = source;
+    m_symbols["+"]    = Plus;
+    m_symbols["-"]    = Minus;
+    m_symbols["*"]    = Star;
+    m_symbols["/"]    = Slash;
+    m_symbols["+="]   = PlusEqual;
+    m_symbols["-="]   = MinusEqual;
+    m_symbols["*="]   = StarEqual;
+    m_symbols["/="]   = SlashEqual;
 }
 
 bool Tokenizer::in_identifier(const char ch, const std::size_t index) {
@@ -102,47 +94,83 @@ bool Tokenizer::is_symbol(const char ch) {
     return false;
 }
 
-bool Tokenizer::scan_symbol() {
+void Tokenizer::scan_symbol() {
+    std::size_t symbol_length = std::min(3uz, m_scanner->num_remaining_chars());
+ 
+    // Find the maximal symbol length
+    for (std::size_t offset = 0; offset < symbol_length; ++offset) {
+        if (!is_symbol(m_scanner->peek(offset))) {
+            --symbol_length;
+            break;
+        }
+    }
+
+    m_scanner->advance(symbol_length);
+
+    // Find the largest symbol
+    for (std::size_t length = 0; length < symbol_length; ++length) {
+        const auto symbol = m_scanner->selection();
+        
+        if (auto it = m_symbols.find({symbol}); it != m_symbols.end()) {
+            push_token(it->second);
+            return;
+        }
+
+        m_scanner->back();
+    }
     
+    // TODO: The symbol was unexpected
+    m_scanner->advance();
 }
 
 void Tokenizer::push_token(const TokenType type) {
-    
+    m_tokens.push_back(Token{
+            .type = type, 
+            .text = std::string(m_scanner->selection()),
+            .location = {
+               .line = m_scanner->line(),
+               .column = m_scanner->column(),
+               .path = std::string(m_source_file->path())
+            }
+        });
 }
 
-std::vector<Token> Tokenizer::tokenize() {
-    tokens.clear();
-    tokens.shrink_to_fit();
-    
-    Scanner scanner (source_file->source_view());
+std::vector<Token> Tokenizer::tokenize(const SourceFile& source_file) {
+    Scanner scanner (source_file.contents());
+  
+    m_tokens.clear();
+    m_tokens.shrink_to_fit();
+     
+    // Reinitialize pointers
+    m_scanner = &scanner;
+    m_source_file = &source_file;
 
-    while (!scanner.at_end()) {
-        scanner.new_scan();
+    while (!m_scanner->at_end()) {
+        m_scanner->new_scan();
 
-        if (scan_symbol()) {
-            continue;
-        }
-
-        if (const char ch = scanner.peek(); in_identifier(ch, 0)) {
-            scanner.scan(in_identifier);
+        if (const char ch = m_scanner->peek(); in_identifier(ch, 0)) {
+            m_scanner->scan(in_identifier);
             auto type = TokenType::Identifier;
-            if (const auto keyword_iter = keywords.find({scan.scanned_str()}); keyword_iter != keywords.end()) {
+            if (const auto keyword_iter = m_keywords.find({m_scanner->selection()}); keyword_iter != m_keywords.end()) {
                 type = keyword_iter->second;
             }
             push_token(type);
         }
+        else if (is_symbol(ch)) {
+            scan_symbol();
+        }
         else if (in_number(ch, 0)) {
-            scanner.scan(in_number);
+            m_scanner->scan(in_number);
             push_token(TokenType::LiteralInteger);
         }
         else if (ch == '$') {
-            scanner.scan(in_dollar_identifier);
+            m_scanner->scan(in_dollar_identifier);
             push_token(TokenType::DollarIdentifier);
         }
         else {
-            scanner.advance();
+            m_scanner->advance();
         }
     }
 
-    return tokens;
+    return m_tokens;
 }

@@ -1,15 +1,17 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 
 #include "Token.h"
 #include "Scanner.h"
+#include "SourceFile.h"
+
 
 class Tokenizer {
 public:
     explicit Tokenizer();
-    void set_source(SourceFile* source);
-    std::vector<Token> tokenize();
+    std::vector<Token> tokenize(const SourceFile& source_file);
 private:
     static bool in_identifier(char ch, std::size_t index);
     static bool in_dollar_identifier(char ch, std::size_t index);
@@ -17,13 +19,14 @@ private:
     static bool is_symbol(char ch);
 
 private:
-    bool scan_symbol();
+    void scan_symbol();
     void push_token(TokenType type);
 
 private:
-    SourceFile* source_file;
-    std::vector<Token> tokens;
-    
-    std::unordered_map<std::string_view, TokenType> keywords;
-    std::unordered_map<std::string_view, TokenType> symbols;
+    std::vector<Token> m_tokens;
+    Scanner* m_scanner;
+    const SourceFile* m_source_file;
+    std::unordered_map<std::string_view, TokenType> m_keywords;
+    std::unordered_map<std::string_view, TokenType> m_symbols;
 };
+ 

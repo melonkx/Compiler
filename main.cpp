@@ -3,15 +3,10 @@
 #include "Parser.h"
 
 int main() {
-    std::string program;
-
-    const auto push = [&](const std::string line) { program += line + '\n'; };
-
-    push("function Main (a : Int* [100] b : Size) {");
-    push("}");
-
-    Tokenizer tokenizer (program);
-    const auto tokens = tokenizer.tokenize();
+    const auto file = SourceFile::open("hello.src");
+    
+    Tokenizer tokenizer;
+    const auto tokens = tokenizer.tokenize(file);
     
     for (const auto& tok : tokens) {
         std::cout << tok.text << " " << static_cast<int>(tok.type) << '\n';

@@ -50,8 +50,7 @@ AST::Ptr Parser::parse_expression() {
         return parse_identifier();
     }
 
-    // Unexpected
-    // unexpected("...");
+    expected_error("expression");
     return nullptr;
 }
 
@@ -89,8 +88,7 @@ AST::Ptr Parser::parse_function() {
 
     // Read function name
     if (!reader.is(TokenType::Identifier)) {
-        // Expected identifier
-        //expected("expected...");
+        expected_error("function name");
         return nullptr;
     }
 
@@ -108,13 +106,13 @@ AST::Ptr Parser::parse_function() {
 
     // Read body
     if (reader.consume(TokenType::FunctionArrow)) {
-        function.body = parse_expression();
+        function.body = parse_statement();
     }
     else if (reader.consume(TokenType::LeftBracket)) {
         function.body = parse_block();
     }
     else {
-        // Unexpected
+        expected_error("{ or =>");
         return nullptr;
     }
 
@@ -143,7 +141,7 @@ AST::Ptr Parser::parse_function_parameters() {
 
             if (!reader.consume(TokenType::Comma)) {
                 if (!reader.is(TokenType::RightParen)) {
-                    unexpected_error();
+                    expected_error(")");
                     return nullptr;
                 }
             }
@@ -153,8 +151,7 @@ AST::Ptr Parser::parse_function_parameters() {
             found_closing_paren = true;
             break;
         } else {
-            // Unexpected
-            unexpected_error();
+            expected_error("<TODO>");
             return nullptr;
         }
 
@@ -465,10 +462,6 @@ AST::Ptr Parser::make_literal_integer(const std::string_view text) {
 }
 
 #pragma region Errors
-
-void Parser::unexpected_error() {
-
-}
 
 void Parser::expected_error(const std::string& what) {
     

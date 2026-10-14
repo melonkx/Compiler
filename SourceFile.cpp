@@ -1,5 +1,5 @@
 #include "SourceFile.h"
-#include <ifstream>
+#include <fstream>
 
 SourceFile::SourceFile(
         const std::string_view path_,
@@ -9,10 +9,10 @@ SourceFile::SourceFile(
 {}
 
 SourceFile SourceFile::open(const std::string_view path) {
-    std::ifstream ifs (path);
+    std::ifstream ifs (path.data());
     
     if (!ifs.is_open()) {
-        throw SourceFileError {.path = path, .message = "unable to open"};
+        throw SourceFileError {.path = std::string(path), .message = "unable to open"};
     }
 
     std::string contents;

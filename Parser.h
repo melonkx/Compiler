@@ -39,7 +39,6 @@ private:
 #pragma endregion
 
 #pragma region Statements
-    // Statement subfunctions
     AST::Ptr parse_if();
     AST::Ptr parse_const_declaration();
     AST::Ptr parse_var_declaration();
@@ -50,7 +49,6 @@ private:
 
 private:
 #pragma region Errors
-    void unexpected_error();
     void expected_error(const std::string& what);
     bool has_syntax_errors() const;
 #pragma endregion

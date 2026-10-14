@@ -1,16 +1,17 @@
 #include "Scanner.h"
+#include <stdexcept>
 
-Scanner::Scanner(std::string_view str) : str(str) {}
+Scanner::Scanner(std::string_view str) : m_str(str) {}
 
 void Scanner::new_scan() {
     m_begin = m_end;
 }
 
 void Scanner::scan(Predicate&& predicate) {
-    const size_t end_original = m_end;    
+    const size_t starting_end_index = end_index();    
 
     while (!at_end()) {
-        if (!predicate(peek(m_end), m_end - end_original)) {
+        if (!predicate(peek(), end_index() - starting_end_index)) {
             break;
         }
         advance();
@@ -18,31 +19,54 @@ void Scanner::scan(Predicate&& predicate) {
 }
 
 void Scanner::advance(const std::size_t num) {
-    const auto pos = m_end + num;
-    m_end = pos;
+    if (m_str.empty()) return;
+
+    const auto pos = end_index() + num;
     
-    if (m_end > m_str.length()) {
-        m_end = m_str.length();
+    if (pos > m_str.length()) {
+        throw std::out_of_range("in Scanner::advance() end_index() + num > m_str.length()");
     }
+
+    m_end.index = pos;    
 }
 
-char Scanner:peek(const std::size_t offset) const {
-    const auto pos = m_end + offset;
-    return m_pos < m_str.length() ? m_str[pos] : '\0'; 
+char Scanner::peek(const std::size_t offset) const {
+    const auto pos = end_index() + offset; 
+    return pos < m_str.length() ? m_str[pos] : '\0'; 
+}
+
+void Scanner::back(const std::size_t offset) {
+    if (offset > end_index()) {
+        throw std::out_of_range("offset > end_index()");
+    }
+
+    m_end.index -= offset;
 }
 
 std::string_view Scanner::remaining() const {
-    return m_str.substr(m_end);
+    return m_str.substr(end_index());
 }
 
 std::string_view Scanner::selection() const {
-    return m_str.substr(m_begin, m_end - m_begin); 
+    return m_str.substr(m_begin.index, m_end.index - m_begin.index); 
 }
 
-bool Scanner::at_end() {
-   return m_end == m_str.length();
+bool Scanner::at_end() const {
+   return end_index() == m_str.length();
 }
 
-std::size_t Scanner::num_remaining_chars() {
-    return m_str.length() - m_end;
+std::size_t Scanner::num_remaining_chars() const {
+    return m_str.length() - end_index();
+}
+
+std::size_t Scanner::line() const {
+    return m_begin.line;
+}
+
+std::size_t Scanner::column() const {
+    return m_begin.column;
+}
+
+std::size_t Scanner::end_index() const {
+    return m_end.index;
 }

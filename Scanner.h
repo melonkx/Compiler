@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+#include <string>
 
 class Scanner {
 public:
@@ -11,22 +13,25 @@ public:
     void scan(Predicate&& predicate);
     void advance(std::size_t num = 1);
     char peek(std::size_t offset = 0) const;
+    void back(std::size_t offset = 1);
     std::string_view remaining() const;
+    std::size_t num_remaining_chars() const;
     std::string_view selection() const;
     bool at_end() const;
     std::size_t line() const;
     std::size_t column() const;
 
 private:
-    std::string_view m_str{};
+    std::size_t end_index() const;
 
+private:
     struct Cursor {
-        std::size_t index;
-        std::size_t line;
-        std::size_t column;
+        std::size_t index{};
+        std::size_t line = 1;
+        std::size_t column{};
     };
 
+    std::string_view m_str{};
     Cursor m_begin;
     Cursor m_end;
-
 };

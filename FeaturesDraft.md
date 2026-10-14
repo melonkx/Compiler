@@ -1,3 +1,45 @@
+## Easy debug print statements
+Place the !! symbol to easily inspect the value of something at runtime.
+
+
+```
+!! const result = Function()
+
+// Will print to stdout:
+// const result = Function()
+// result = ...
+
+// Syntactic sugar for ...
+// const result = Function()
+// if In Debug Mode then {
+//   print_line("const result = Function()")
+//   print("result = ")Function
+//   debug_print(result);
+//}
+
+!! Function()
+// Function() = ...
+
+// This also works *within* a function call.
+// In this case, the print will happen before the function is called.
+Function(Arg1, Arg2, !!Arg3)
+
+// Function(Arg1, Arg2, !!Arg3)
+// Arg3 = ...
+// Function is called.
+
+// If there are numerous debug prints within a function call...
+
+Function(!!Arg1, !!Arg2, !!Arg3)
+
+// 1 | Arg1 = ...
+// 1 | Arg2 = ... 
+// 1 | Arg3 = ...
+// in Function(Arg1, Arg2, Arg3)
+
+```
+
+
 ## Enums
 
 
