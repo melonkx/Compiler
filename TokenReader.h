@@ -15,6 +15,6 @@ public:
     const Token& advance();
 
 private:
-    std::span<const Token> tokens;
-    std::size_t index;
+    std::span<const Token> m_tokens;
+    std::size_t m_index;
 };
