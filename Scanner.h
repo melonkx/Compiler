@@ -23,12 +23,13 @@ public:
 
 private:
     std::size_t end_index() const;
+    void adjust_cursor(std::size_t steps);
 
 private:
     struct Cursor {
-        std::size_t index{};
-        std::size_t line = 1;
-        std::size_t column{};
+        std::size_t index {};
+        std::size_t line {1};
+        std::size_t column {1};
     };
 
     std::string_view m_str{};

@@ -3,12 +3,15 @@
 #include <iostream>
 #include <sstream>
 #include <source_location>
+#include <format>
 
-
-#define OUTPUT_LOCATION  std::cout << std::source_location::current().function_name() << std::endl  
+#define OUTPUT_LOCATION do { \
+    const auto location = std::source_location::current(); \
+    std::cout << location.line() << "\t| " << location.function_name() <<  std::endl; \
+} while (0)
 
 Parser::Parser(const std::span<const Token> tokens) : 
-    reader(tokens) {
+    m_reader(tokens) {
 }
 
 AST::Ptr Parser::parse() {
@@ -16,37 +19,37 @@ AST::Ptr Parser::parse() {
 
     AST::Module mod;
 
-    while (!reader.at_end()) {
-        if (reader.consume(TokenType::Function)) {
+    while (!m_reader.at_end()) {
+        if (m_reader.consume(TokenType::Function)) {
             auto func = parse_function();
             
             if (!func) {
-                return nullptr;
+                continue;
             }
 
             mod.functions.emplace_back(std::move(func));
         }
         else {
             // Throw an error
-            return nullptr;
+            break;
         }
     }
-    
-    return std::make_unique<AST>(std::move(mod));
+ 
+    return make_ast(std::move(mod));
 }
 
 AST::Ptr Parser::parse_expression() {
     OUTPUT_LOCATION;
 
-    if (reader.is(TokenType::LiteralInteger)) {
+    if (m_reader.is(TokenType::LiteralInteger)) {
         return parse_literal_integer();
     }
 
-    if (reader.is(TokenType::LiteralString)) {
+    if (m_reader.is(TokenType::LiteralString)) {
         return parse_literal_string();
     }
 
-    if (reader.is(TokenType::Identifier)) {
+    if (m_reader.is(TokenType::Identifier)) {
         return parse_identifier();
     }
 
@@ -57,22 +60,27 @@ AST::Ptr Parser::parse_expression() {
 AST::Ptr Parser::parse_statement() { 
     OUTPUT_LOCATION;
 
-    if (reader.consume(TokenType::LeftBracket)) {
+    if (m_reader.consume(TokenType::LeftBracket)) {
         return parse_block();
     }
 
-    if (reader.consume(TokenType::If)) {
+    if (m_reader.consume(TokenType::If)) {
         return parse_if();
     }
 
-    if (reader.consume(TokenType::Const)) {
+    if (m_reader.consume(TokenType::Return)) {
+        return parse_return();
+    }
+
+    if (m_reader.consume(TokenType::Const)) {
         return parse_const_declaration();
     }
 
-    if (reader.consume(TokenType::Var)) {
+    if (m_reader.consume(TokenType::Var)) {
         return parse_var_declaration();
     }
     
+    expected_error("statement"); 
     return nullptr;
 }
 
@@ -87,41 +95,37 @@ AST::Ptr Parser::parse_function() {
     // (params) is *Optional*
 
     // Read function name
-    if (!reader.is(TokenType::Identifier)) {
+    if (!m_reader.is(TokenType::Identifier)) {
         expected_error("function name");
-        return nullptr;
     }
 
-    function.name = reader.advance().text;
- 
-    // Read parameters
-    if (reader.consume(TokenType::LeftParen)) {
-        function.parameters = parse_function_parameters();
-
-        if (has_syntax_errors()) {
-            // Exit
-            return nullptr;
+    if (!m_reader.at_end()) {
+        function.name = m_reader.advance().text;
+        
+        if (failed()) {
+            function.name += " (failing)";
         }
     }
 
+    // Read parameters
+    if (m_reader.consume(TokenType::LeftParen)) {
+        function.parameters = parse_function_parameters();
+    }
+
     // Read body
-    if (reader.consume(TokenType::FunctionArrow)) {
+    if (m_reader.consume(TokenType::FunctionArrow)) {
         function.body = parse_statement();
     }
-    else if (reader.consume(TokenType::LeftBracket)) {
+    else if (m_reader.consume(TokenType::LeftBracket)) {
         function.body = parse_block();
     }
     else {
-        expected_error("{ or =>");
-        return nullptr;
+        expected_error("function body as { or =>");
     }
 
-    if (!function.body) {
-        return nullptr;
-    }
-    
-    return std::make_unique<AST>(std::move(function));
+    return make_ast(std::move(function));
 }
+
 
 AST::Ptr Parser::parse_function_parameters() {
     OUTPUT_LOCATION;
@@ -129,39 +133,31 @@ AST::Ptr Parser::parse_function_parameters() {
     AST::FunctionParameters function_parameters;
     bool found_closing_paren = false;
 
-    while (!reader.at_end()) {
-        if (reader.is(TokenType::Identifier)) {
+    while (!m_reader.at_end()) {
+        if (m_reader.is(TokenType::Identifier)) {
             auto parameter = parse_function_parameter();
 
-            if (!parameter) {
-                return nullptr;
+            if (parameter) {
+                function_parameters.parameters.emplace_back(std::move(parameter));
             }
-            
-            function_parameters.parameters.emplace_back(std::move(parameter));
 
-            if (!reader.consume(TokenType::Comma)) {
-                if (!reader.is(TokenType::RightParen)) {
-                    expected_error(")");
-                    return nullptr;
+            if (!m_reader.consume(TokenType::Comma)) {
+                if (!m_reader.is(TokenType::RightParen)) {
+                    expected_error(") to close function parameter list");
                 }
             }
         }
-        else if (reader.is(TokenType::RightParen)) {
-            reader.advance();
+        else if (m_reader.is(TokenType::RightParen)) {
+            m_reader.advance();
             found_closing_paren = true;
             break;
         } else {
-            expected_error("<TODO>");
-            return nullptr;
+            expected_error("<TODO> (Function parameters)");
         }
 
     }
-
-    if (!found_closing_paren) {
-        return nullptr;
-    }
     
-    return std::make_unique<AST>(std::move(function_parameters));
+    return make_ast(std::move(function_parameters));
 }
 
 AST::Ptr Parser::parse_function_parameter() {
@@ -169,28 +165,22 @@ AST::Ptr Parser::parse_function_parameter() {
 
     AST::FunctionParameter parameter;
 
-    if (reader.is(TokenType::Identifier)) {
-        parameter.name = reader.advance().text;
-    }
-    else {
+    if (!m_reader.is(TokenType::Identifier)) {
         expected_error("parameter name");
-        return nullptr;
     }
 
-    if (!reader.consume(TokenType::Colon)) {
+    if (!m_reader.at_end()) {
+        parameter.name = m_reader.advance().text;
+    }
+
+    if (!m_reader.consume(TokenType::Colon)) {
         // Expected :
         // Error: expected : after 
         expected_error(": after parameter name");
-        return nullptr;
     }
 
     parameter.type = parse_type();
-
-    if (!parameter.type) {
-        return nullptr;
-    }
-
-    return std::make_unique<AST>(std::move(parameter));
+    return make_ast(std::move(parameter));
 }
 
 AST::Ptr Parser::parse_type() {
@@ -211,17 +201,17 @@ AST::Ptr Parser::parse_type() {
 
     AST::Type type;
 
-    if (reader.is(TokenType::Identifier)) {
-        type.name = reader.advance().text;    
-    }
-    else { 
+    if (!m_reader.is(TokenType::Identifier)) {
         expected_error("type name");
-        return nullptr;
+    }
+
+    if (!m_reader.at_end()) {
+        type.name = m_reader.advance().text;
     }
 
     auto ptr = std::make_unique<AST>(std::move(type));
 
-    if (reader.consume(TokenType::Star)) {
+    if (m_reader.consume(TokenType::Star)) {
         return parse_pointer_type(std::move(ptr));
     }
 
@@ -230,14 +220,14 @@ AST::Ptr Parser::parse_type() {
 
 AST::Ptr Parser::parse_pointer_type(AST::Ptr&& type) {
     OUTPUT_LOCATION;
-    if (reader.consume(TokenType::LeftSquareBracket)) {
+    if (m_reader.consume(TokenType::LeftSquareBracket)) {
         return parse_bounded_pointer_type(std::move(type));
     }
 
     AST::PointerType pointer_type;
     pointer_type.base_type = std::move(type);
 
-    return std::make_unique<AST>(std::move(pointer_type));
+    return make_ast(std::move(pointer_type));
 }
 
 AST::Ptr Parser::parse_bounded_pointer_type(AST::Ptr&& type) {
@@ -246,41 +236,41 @@ AST::Ptr Parser::parse_bounded_pointer_type(AST::Ptr&& type) {
     AST::BoundedPointerType bounded_pointer_type;
     bounded_pointer_type.base_type = std::move(type);
 
-    // Type* [...]
-    if (reader.consume(TokenType::TripleDot)) {
-        if (!reader.consume(TokenType::RightSquareBracket)) {
-            expected_error("closing ]");
-            return nullptr;
-        }
+    bool began_with_triple_dot {};
 
-        return std::make_unique<AST>(
-            std::move(bounded_pointer_type)
-        );
+    // Type* [...]
+    if (m_reader.consume(TokenType::TripleDot)) {
+        began_with_triple_dot = true;
+        if (!m_reader.is(TokenType::RightSquareBracket)) {
+            expected_error("] to close pointer bounds",
+                   Suggestion{.message = "Type* [Maximum] or Type* [...]"}
+            );
+        }
+        else {
+            return make_ast(std::move(bounded_pointer_type));
+        }
     }
 
     auto first_constraint = parse_expression();
-    if (!first_constraint) {
-        return nullptr;
+
+    if (!first_constraint && !began_with_triple_dot) {
+        expected_error("constraint for pointer bounds");
     }
 
     // Type* [Min...] or Type* [Min...Max]
-    if (reader.consume(TokenType::TripleDot)) {
+    if (m_reader.consume(TokenType::TripleDot)) {
         bounded_pointer_type.minimum = std::move(first_constraint);
 
         // Type* [Min...]
-        if (reader.consume(TokenType::RightSquareBracket)) {
-            return std::make_unique<AST>(
-                std::move(bounded_pointer_type)
-            );
+        if (m_reader.consume(TokenType::RightSquareBracket)) {
+            return make_ast(std::move(bounded_pointer_type));
         }
 
         // Type* [Min...Max]
         auto second_constraint = parse_expression();
-        if (!second_constraint) {
-            return nullptr;
-        }
-
-        if (!reader.consume(TokenType::RightSquareBracket)) {
+        
+        if (!m_reader.consume(TokenType::RightSquareBracket)) {
+            expected_error("] after maximum to close pointer bounds");
             return nullptr;
         }
 
@@ -288,28 +278,34 @@ AST::Ptr Parser::parse_bounded_pointer_type(AST::Ptr&& type) {
     }
     else {
         // Type* [Max]
-        if (!reader.consume(TokenType::RightSquareBracket)) {
+        if (!m_reader.consume(TokenType::RightSquareBracket)) {
+            std::optional<Suggestion> suggestion;
+            if (first_constraint) {
+                suggestion = {
+                    .message = "Type* [maximum]"
+                };
+            }
+
+            expected_error("] after maximum to close pointer bounds", suggestion);
             return nullptr;
         }
 
         bounded_pointer_type.maximum = std::move(first_constraint);
     }
 
-    return std::make_unique<AST>(std::move(bounded_pointer_type));
+    return make_ast(std::move(bounded_pointer_type));
 }
-
-
 
 AST::Ptr Parser::parse_block() {
     OUTPUT_LOCATION;
-    
+   
     AST::Block block;
     bool found_closing_brace = false;
 
     // Read until we hit a } or there's a syntax error
-    while (!reader.at_end()) {
-        if (reader.is(TokenType::RightBracket)) {
-            reader.advance();
+    while (!m_reader.at_end()) {
+        if (m_reader.is(TokenType::RightBracket)) {
+            m_reader.advance();
             found_closing_brace = true;
             break;
         }
@@ -318,9 +314,8 @@ AST::Ptr Parser::parse_block() {
         
         if (statement) {
             block.statements.emplace_back(std::move(statement));
-        }
-        else {
-            break;
+        } else {
+            m_reader.advance();
         }
     }
     
@@ -329,31 +324,31 @@ AST::Ptr Parser::parse_block() {
         return nullptr;
     }
 
-    return std::make_unique<AST>(std::move(block));
+    return make_ast(std::move(block));
 }
 #pragma region Expressions
 
 AST::Ptr Parser::parse_literal_integer() {
     OUTPUT_LOCATION;
 
-    AST::Ptr literal_integer = make_literal_integer(reader.advance().text);
+    AST::Ptr literal_integer = make_literal_integer(m_reader.advance().text);
    
-    if (reader.consume(TokenType::Plus)) {
+    if (m_reader.consume(TokenType::Plus)) {
         return parse_binary(
                 std::move(literal_integer),
                 BinaryOperation::Plus);
     }
-    else if (reader.consume(TokenType::Minus)) {
+    else if (m_reader.consume(TokenType::Minus)) {
         return parse_binary(
                 std::move(literal_integer),
                 BinaryOperation::Minus);
     }
-    else if (reader.consume(TokenType::Star)) {
+    else if (m_reader.consume(TokenType::Star)) {
         return parse_binary(
                 std::move(literal_integer),
                 BinaryOperation::Multiply);
     } 
-    else if (reader.consume(TokenType::Slash)) {
+    else if (m_reader.consume(TokenType::Slash)) {
         return parse_binary(
                 std::move(literal_integer),
                 BinaryOperation::Divide);
@@ -396,49 +391,62 @@ AST::Ptr Parser::parse_if() {
     if_statement.condition = parse_expression();
     
     if (if_statement.condition == nullptr) {
-        return nullptr;
+        expected_error("condition for if");
     }
 
-    if (reader.consume(TokenType::Then)) {
+    if (m_reader.consume(TokenType::Then)) {
         if_statement.then_true = parse_statement();
     }
-    else if (reader.consume(TokenType::LeftBracket)) {
+    else if (m_reader.consume(TokenType::LeftBracket)) {
         if_statement.then_true = parse_block();
     }
     else {
         // Unexpected
-        return nullptr;
+        expected_error("if body as { or then");
     }
-
-    // There was a syntax error parsing the true branch
-    if (!if_statement.then_true) {
-        return nullptr;
-    }
-    
-    if (reader.consume(TokenType::Elif)) {
+ 
+    if (m_reader.consume(TokenType::Elif)) {
         if_statement.then_false = parse_if();
-        
-        // Syntax error parsing false branch
-        if (!if_statement.then_false) {
-            return nullptr;
-        }
-    }
-    else if (reader.consume(TokenType::Else)) {  
+   }
+    else if (m_reader.consume(TokenType::Else)) {  
         if_statement.then_false = parse_statement();
-       
-        // Syntax error parsing false branch
-        if (!if_statement.then_false) {
-            return nullptr;
-        }
-    }
+   }
 
-    return std::make_unique<AST>(std::move(if_statement));
+    return make_ast(std::move(if_statement));
+}
+
+AST::Ptr Parser::parse_return() {
+    OUTPUT_LOCATION;
+
+    AST::Return ret;
+    ret.expr = parse_expression();
+    return make_ast(std::move(ret));
 }
 
 AST::Ptr Parser::parse_const_declaration() {
     OUTPUT_LOCATION;
 
-    return nullptr;
+    AST::Variable const_decl{};
+
+    if (!m_reader.is(TokenType::Identifier)) {
+        expected_error("name for declared constant");
+    }
+    
+    if (!m_reader.at_end()) {
+        const_decl.name = m_reader.advance().text;
+    }
+
+    if (m_reader.consume(TokenType::Colon)) {
+        const_decl.type = parse_type();    
+    }
+
+    if (!m_reader.consume(TokenType::Equal)) {
+        expected_error("= after constant declaration");
+    }
+
+    const_decl.initialization = parse_expression();
+
+    return make_ast(std::move(const_decl));
 }
 
 AST::Ptr Parser::parse_var_declaration() {
@@ -458,17 +466,34 @@ AST::Ptr Parser::make_literal_integer(const std::string_view text) {
     AST::LiteralInteger integer;
     ss >> integer.value; 
 
-    return std::make_unique<AST>(std::move(integer));
+    return make_ast(std::move(integer));
 }
 
 #pragma region Errors
 
-void Parser::expected_error(const std::string& what) {
-    
+bool Parser::failed() const {
+    return m_failed;
+}
+
+void Parser::expected_error(
+        const std::string& what,
+        const std::optional<Suggestion> suggestion
+) {
+    const auto& current_token = m_reader.current();
+    m_errors.push_back({
+            .message = std::format("expected {} (got {})", what, current_token.text),
+            .location = current_token.location,
+            .suggestion = suggestion
+            });
+    m_failed = true;
 }
 
 bool Parser::has_syntax_errors() const {
-    return !errors.empty();
+    return !m_errors.empty();
+}
+
+std::span<const SyntaxError> Parser::syntax_errors() const {
+    return m_errors;
 }
 
 #pragma endregion

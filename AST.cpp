@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+// Written by AI for temporary purposes.
+// (For debugging, I do not care if one-time helper functions are written by AI)
+// This compiler is otherwise free of slop
 void Print(const AST::Ptr& node, std::size_t indent = 0)
 {
     const auto pad = [indent]() {
@@ -76,6 +79,8 @@ void Print(const AST::Ptr& node, std::size_t indent = 0)
             else if constexpr (std::is_same_v<T, AST::Variable>)
             {
                 std::cout << pad() << "Variable: " << value.name << '\n';
+                std::cout << pad() << "  Type:\n";
+                print_child(value.type, indent + 2);
                 std::cout << pad() << "  Initialization:\n";
                 print_child(value.initialization, indent + 2);
             }

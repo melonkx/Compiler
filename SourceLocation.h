@@ -3,7 +3,8 @@
 #include <string>
 
 struct SourceLocation {
-    unsigned long line;
-    unsigned long column;
+    std::size_t line;
+    std::size_t column;
     std::string path;
+    std::size_t index;
 };

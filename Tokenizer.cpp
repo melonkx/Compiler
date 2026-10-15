@@ -14,6 +14,7 @@ Tokenizer::Tokenizer() {
     m_keywords["else"]    = Else;
     m_keywords["elif"]    = Elif;
     m_keywords["then"]    = Then;
+    m_keywords["return"]  = Return;
     m_keywords["for"]     = For;
     m_keywords["ranged"]  = Ranged;
     m_keywords["in"]      = In;
@@ -33,6 +34,8 @@ Tokenizer::Tokenizer() {
 
     m_symbols["."]    = Dot;
     m_symbols["..."]  = TripleDot;
+    m_symbols["=>"]   = FunctionArrow;
+    m_symbols["!!"]   = BangBang;
 
     m_symbols["<"]    = LessThan;
     m_symbols["<="]   = LessThanOrEqual;
@@ -71,6 +74,7 @@ bool Tokenizer::in_number(const char ch, const std::size_t index) {
 
 bool Tokenizer::is_symbol(const char ch) {
     switch (ch) {
+        case '.':
         case ':':
         case ',':
         case '=':
@@ -101,7 +105,6 @@ void Tokenizer::scan_symbol() {
     for (std::size_t offset = 0; offset < symbol_length; ++offset) {
         if (!is_symbol(m_scanner->peek(offset))) {
             --symbol_length;
-            break;
         }
     }
 
@@ -110,7 +113,9 @@ void Tokenizer::scan_symbol() {
     // Find the largest symbol
     for (std::size_t length = 0; length < symbol_length; ++length) {
         const auto symbol = m_scanner->selection();
-        
+       
+        std::cout << "Symbol: [" << symbol << "] \n";
+
         if (auto it = m_symbols.find({symbol}); it != m_symbols.end()) {
             push_token(it->second);
             return;

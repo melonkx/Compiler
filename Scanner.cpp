@@ -26,8 +26,9 @@ void Scanner::advance(const std::size_t num) {
     if (pos > m_str.length()) {
         throw std::out_of_range("in Scanner::advance() end_index() + num > m_str.length()");
     }
-
-    m_end.index = pos;    
+    
+    adjust_cursor(num);
+    m_end.index = pos;
 }
 
 char Scanner::peek(const std::size_t offset) const {
@@ -38,7 +39,7 @@ char Scanner::peek(const std::size_t offset) const {
 void Scanner::back(const std::size_t offset) {
     if (offset > end_index()) {
         throw std::out_of_range("offset > end_index()");
-    }
+    } 
 
     m_end.index -= offset;
 }
@@ -69,4 +70,20 @@ std::size_t Scanner::column() const {
 
 std::size_t Scanner::end_index() const {
     return m_end.index;
+}
+
+void Scanner::adjust_cursor(std::size_t steps) {
+    return;
+    for (std::size_t offset = 0; offset < steps; ++offset) {
+        const char ch = peek(offset);
+
+        if (ch == '\n') {
+            m_end.line++;
+            m_end.column = 1;
+        } else {
+            m_end.column++;
+        }
+    }
+
+
 }

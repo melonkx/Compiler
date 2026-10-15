@@ -47,6 +47,8 @@ struct AST {
     struct Variable {
         std::string name;
         Ptr initialization;
+        Ptr type;
+        bool is_const{};
     };
 
     struct Block {
@@ -58,6 +60,11 @@ struct AST {
         Ptr then_true;
         Ptr then_false;
     };
+
+    struct Return {
+        Ptr expr;
+    };
+
 #pragma endregion
 
 #pragma region Expressions    
@@ -94,7 +101,7 @@ struct AST {
    
     using Top = std::variant<Module, Function, FunctionParameters, FunctionParameter, Type, PointerType, BoundedPointerType>;
     using Statement = std::variant<Variable, Block, If>;
-    using Expression = std::variant<Unary, Binary, LiteralInteger, Address, BoundedAddress>;
+    using Expression = std::variant<Unary, Binary, LiteralInteger, Address, BoundedAddress, Return>;
     std::variant<Top, Statement, Expression> data;
 };
 

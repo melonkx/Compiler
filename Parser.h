@@ -10,7 +10,9 @@ class Parser {
 public:
     explicit Parser(std::span<const Token> tokens);
     AST::Ptr parse();
-
+    bool has_syntax_errors() const;
+    std::span<const SyntaxError> syntax_errors() const;
+    
 private:
     enum class BinaryOperation {
         Plus,
@@ -40,20 +42,33 @@ private:
 
 #pragma region Statements
     AST::Ptr parse_if();
+    AST::Ptr parse_return();
     AST::Ptr parse_const_declaration();
     AST::Ptr parse_var_declaration();
-#pragma endregion
 
+#pragma endregion
 private:
     AST::Ptr make_literal_integer(std::string_view text);
 
 private:
 #pragma region Errors
-    void expected_error(const std::string& what);
-    bool has_syntax_errors() const;
+    bool failed() const;
+
+    void expected_error(
+        const std::string& what,
+        std::optional<Suggestion> suggestion = std::nullopt
+    );
+
 #pragma endregion
 
 private:
-    TokenReader reader;
-    std::vector<SyntaxError> errors;
+    template<typename T>
+    AST::Ptr make_ast(T&& v) {
+        return failed() ? nullptr : std::make_unique<AST>(std::move(v));
+    }
+
+private:
+    TokenReader m_reader;
+    std::vector<SyntaxError> m_errors;
+    bool m_failed{};
 };

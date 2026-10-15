@@ -13,6 +13,7 @@ enum class TokenType {
     Else,
     Elif,
     Then,
+    Return,
     For,
     Ranged,
     In,
@@ -39,6 +40,7 @@ enum class TokenType {
     Dot,                    // .
     TripleDot,              // ...
     FunctionArrow,          // =>
+    BangBang,               // !!
 
     // Logical symbols
     LessThan,               // <
