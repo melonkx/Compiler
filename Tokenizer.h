@@ -11,7 +11,8 @@
 class Tokenizer {
 public:
     explicit Tokenizer();
-    std::vector<Token> tokenize(const SourceFile& source_file);
+    [[nodiscard]] std::vector<Token> tokenize(const SourceFile& source_file);
+
 private:
     static bool in_identifier(char ch, std::size_t index);
     static bool in_dollar_identifier(char ch, std::size_t index);

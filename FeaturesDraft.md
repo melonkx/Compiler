@@ -1,42 +1,46 @@
-## Easy debug print statements
-Place the !! symbol to easily inspect the value of something at runtime.
-
+##  Objects
 
 ```
-!! const result = Function()
+object description ThingDescription {  
+    // 'Processing' only knows what is explicitly in StorageAccessors
+    methodgroup BufferProcessing uses BufferInfoAccessors {
+        ProcessBuffer : void {
+            GetBufferPtr()[...$d] = RandomNumber()
+        }
+    }
 
-// Will print to stdout:
-// const result = Function()
-// result = ...
+    methodgroup BufferInfoAccessors uses BufferInfo {
+        GetBufferPtr => buffer[0...length]
+    }
 
-// Syntactic sugar for ...
-// const result = Function()
-// if In Debug Mode then {
-//   print_line("const result = Function()")
-//   print("result = ")Function
-//   debug_print(result);
-//}
+    // Inacessible to anything not 'using' it
+    fields BufferInfo {
+        length : Int
+        buffer : Int[100]
+    }
 
-!! Function()
-// Function() = ...
+    fields Irrelevent {
+        useless : Int
+        junk : Garbage
+    }
+}
 
-// This also works *within* a function call.
-// In this case, the print will happen before the function is called.
-Function(Arg1, Arg2, !!Arg3)
+// Declare a new class using the description
+// It only knows about Process() 
 
-// Function(Arg1, Arg2, !!Arg3)
-// Arg3 = ...
-// Function is called.
+// Any fields
+object class Description : 
+    // Include only what we need for BufferProcessing
+    ThingDescription(uses BufferProcessing)
+{
+    // Does not know about Irrelevent.
+    // Infact, the compiler will not even allocate space for it.
+}
 
-// If there are numerous debug prints within a function call...
-
-Function(!!Arg1, !!Arg2, !!Arg3)
-
-// 1 | Arg1 = ...
-// 1 | Arg2 = ... 
-// 1 | Arg3 = ...
-// in Function(Arg1, Arg2, Arg3)
-
+function Testing {
+    let thing = Thing()
+    thing.ProcessBuffer()
+}
 ```
 
 
