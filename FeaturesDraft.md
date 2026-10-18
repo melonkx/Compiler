@@ -1,48 +1,6 @@
 ##  Objects
 
-```
-object description ThingDescription {  
-    // 'Processing' only knows what is explicitly in StorageAccessors
-    methodgroup BufferProcessing uses BufferInfoAccessors {
-        ProcessBuffer : void {
-            GetBufferPtr()[...$d] = RandomNumber()
-        }
-    }
-
-    methodgroup BufferInfoAccessors uses BufferInfo {
-        GetBufferPtr => buffer[0...length]
-    }
-
-    // Inacessible to anything not 'using' it
-    fields BufferInfo {
-        length : Int
-        buffer : Int[100]
-    }
-
-    fields Irrelevent {
-        useless : Int
-        junk : Garbage
-    }
-}
-
-// Declare a new class using the description
-// It only knows about Process() 
-
-// Any fields
-object class Description : 
-    // Include only what we need for BufferProcessing
-    ThingDescription(uses BufferProcessing)
-{
-    // Does not know about Irrelevent.
-    // Infact, the compiler will not even allocate space for it.
-}
-
-function Testing {
-    let thing = Thing()
-    thing.ProcessBuffer()
-}
-```
-
+### TODO
 
 ## Enums
 
