@@ -83,6 +83,10 @@ struct AST {
         Ptr right;
     };
 
+    struct Identifier {
+        std::string name;
+    };
+
     struct LiteralInteger {
         long long value;
     };
@@ -119,7 +123,7 @@ struct AST {
 
     using Expression = std::variant<
         Unary, Binary,
-        LiteralInteger, LiteralString,
+        Identifier, LiteralInteger, LiteralString,
         Address, BoundedAddress
     >;
 

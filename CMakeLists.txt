@@ -14,7 +14,6 @@ add_executable(Compiler
     Parsing/DiagnosticsEngine.cpp
     Parsing/ProductionRuleSelector.cpp
     Parsing/Parser.cpp
-    Parsing/LiteralParser.cpp
     Parsing/StatementParser.cpp
     Parsing/ExpressionParser.cpp 
 )

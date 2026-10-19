@@ -10,7 +10,7 @@ void StatementParser::init_rule() {
 }
 
 AST::Ptr StatementParser::parse() {
-    if (auto&& ptr = m_rule_selector.accept(); ptr) {
+    if (auto&& ptr = rule_selector().accept(); ptr) {
         return ptr;
     }
     // .. error: expected statement
@@ -21,13 +21,13 @@ AST::Ptr StatementParser::parse_if() {
     AST::If if_statement;
     if_statement.condition = m_expression_parser->parse();
     
-    if (!m_reader.consume(TokenType::Then)) {
+    if (!reader().consume(TokenType::Then)) {
         // error: expected 'then' after if condition
     }
 
     if_statement.then_true = parse();
     
-    if (m_reader.consume(TokenType::Else)) {
+    if (reader().consume(TokenType::Else)) {
         if_statement.then_false = parse();
     }
 

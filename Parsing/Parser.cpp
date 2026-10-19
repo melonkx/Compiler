@@ -8,3 +8,11 @@ Diagnostic Parser::make_expected(const std::string& message) {
         .help = std::nullopt
     };
 }
+
+const ProductionRuleSelector& Parser::rule_selector() const {
+    return m_rule_selector;
+}
+
+TokenReader& Parser::reader() {
+    return m_reader;
+}
