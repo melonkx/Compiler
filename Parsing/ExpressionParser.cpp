@@ -1,19 +1,20 @@
 #include "ExpressionParser.h"
 #include <sstream>
 
+ExpressionParser(TokenReader& reader_, DiagnosticsEngine& diagnostics_) :
+    Parser(reader_, diagnostics_) 
+{
+    set_rule(TokenType::Identifier,     &ExpressionParser::parse_identifier,      false);
+    set_rule(TokenType::LiteralInteger, &ExpressionParser::parse_literal_integer, false);
+    set_rule(TokenType::LiteralString,  &ExpressionParser::parse_literal_string,  false);
+}
+
 AST::Ptr ExpressionParser::parse() {
     if (auto ptr = rule_selector().accept(); ptr) {
         return ptr;
     }
     // unexpected...
     return nullptr;
-}
-
-void ExpressionParser::init_rule() {
-    bool is_consuming = false;
-    set_rule(TokenType::Identifier, &ExpressionParser::parse_identifier, is_consuming);
-    set_rule(TokenType::LiteralInteger, &ExpressionParser::parse_literal_integer, is_consuming);
-    set_rule(TokenType::LiteralString, &ExpressionParser::parse_literal_string, is_consuming);
 }
 
 AST::Ptr ExpressionParser::parse_identifier() {

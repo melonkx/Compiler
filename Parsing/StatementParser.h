@@ -5,8 +5,8 @@ class ExpressionParser;
 
 class StatementParser : public Parser {
 public:
+    StatementParser(TokenReader& reader_, DiagnosticsEngine& diagnostics_);
     AST::Ptr parse() override;
-    void init_rule() override;
     void set_expression_parser(ExpressionParser* parser);
 private:
     AST::Ptr parse_if();

@@ -5,12 +5,15 @@
 
 class Parser {
 public:
+    Parser(TokenReader& reader_, DiagnosticsEngine& diagnostics_);
     virtual ~Parser() = default;
     virtual AST::Ptr parse() = 0;
-    virtual void init_rule() = 0;
     
-
 protected:    
+    const ProductionRuleSelector& rule_selector() const;
+    TokenReader& reader();
+    DiagnosticsEngine& diagnostics();
+
     template<typename Type>
     AST::Ptr make_ast(Type&& val) {
         return std::make_unique<AST>(std::move(val));
@@ -19,9 +22,6 @@ protected:
 #pragma region Diagnostics
     Diagnostic make_expected(const std::string& message);
 #pragma enderegion
-
-    const ProductionRuleSelector& rule_selector() const;
-    TokenReader& reader();
 
     template<typename T>
     void set_rule(TokenType type, AST::Ptr (T::*method)(), bool is_consuming=true) {

@@ -1,7 +1,9 @@
 #include "StatementParser.h"
 #include "ExpressionParser.h"
 
-void StatementParser::init_rule() {
+StatementParser::StatementParser(TokenReader& reader_, DiagnosticsEngine& diagnostics_) :
+    Parser(reader_, diagnostics_)
+{
     set_rule(TokenType::If,             &StatementParser::parse_if);
     set_rule(TokenType::Return,         &StatementParser::parse_return);
     set_rule(TokenType::Const,          &StatementParser::parse_const);
@@ -43,7 +45,28 @@ AST::Ptr StatementParser::parse_var() {
 }
 
 AST::Ptr StatementParser::parse_block() {
-    return nullptr;
+    AST::Block block;
+    bool found_ending_brace = false;
+
+    while (!reader().at_end()) {
+        if (reader().consume(TokenType::RightBracket)) {
+            found_ending_brace = true;
+            break;
+        }
+
+        if (auto statement = parse(); statement) {
+            block.statements.emplace_back(std::move(statement));
+        } else {
+            // error...
+            diagnostics().report(make_expected("statement in block"));
+        }
+    }
+
+    if (!found_ending_brace) {
+        diagnostics().report(make_expected("closing brace")); 
+    }
+
+    return make_ast(std::move(block));
 }
 
 AST::Ptr StatementParser::parse_return() {

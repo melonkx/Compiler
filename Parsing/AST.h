@@ -23,8 +23,12 @@ struct AST {
         Ptr type;
     };
 
+    struct List {
+        std::vector<Ptr> elements;
+    };
+
     struct FunctionParameters {
-        std::vector<Ptr> parameters;
+        Ptr list;
     };
 
     struct Type {
@@ -109,7 +113,7 @@ struct AST {
    
     using Top = std::variant<
         Module,
-        Function, FunctionParameters, FunctionParameter,
+        Function, List, FunctionParameter,
         Type, PointerType, BoundedPointerType
     >;
     
@@ -120,16 +124,14 @@ struct AST {
         Return
     >;
     
-
     using Expression = std::variant<
         Unary, Binary,
         Identifier, LiteralInteger, LiteralString,
         Address, BoundedAddress
     >;
 
-    std::variant<Top, Statement, Expression> data;
+    std::variant<Top, Statement, Expression, List> data;
 };
-
 
 
 // Prints an AST to stdout
