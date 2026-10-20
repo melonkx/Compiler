@@ -10,7 +10,7 @@ AST::Ptr ListParser::parse() {
     }
     
     if (!reader().consume(m_opening)) {
-        auto error = make_expected("to_string (m_opening)");
+        auto error = make_expected("opening delimiter in list");
         // report.help = (source code with the delimiter included)
         diagnostics().report(error);
         return nullptr;
@@ -54,7 +54,7 @@ void ListParser::set_delimiters(TokenType opening, TokenType closing) {
     m_closing = closing;
 }
 
-TokenType ListParser::opening_delimiter() const {
+TokenType ListParser::opening() const {
     return m_opening;
 }
 

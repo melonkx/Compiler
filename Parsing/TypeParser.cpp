@@ -1,5 +1,6 @@
 #include "TypeParser.h"
 #include "ExpressionParser.h"
+#include <iostream>
 
 TypeParser::TypeParser(TokenReader& reader_, DiagnosticsEngine& diagnostics_)
     : Parser(reader_, diagnostics_)
@@ -34,6 +35,10 @@ AST::Ptr TypeParser::parse() {
     return type_ast;
 }
 
+void TypeParser::set_expression_parser(ExpressionParser* parser) {
+    m_expression_parser = parser;
+}
+
 AST::Ptr TypeParser::parse_pointer(AST::Ptr&& base_type) {
     auto ptr_type = make_ast(AST::PointerType{.base_type = std::move(base_type)});
 
@@ -50,13 +55,24 @@ AST::Ptr TypeParser::parse_bounded_pointer(AST::Ptr&& base_type) {
     using FixedExtent = BoundedPointer::FixedExtent;
 
     BoundedPointer bounded_pointer {.base_type = std::move(base_type)};
-    
+    bool is_extent_set = false;
+
     if (reader().consume(TokenType::TripleDot)) {
         bounded_pointer.extent = UnknownExtent{};
+        is_extent_set = true;
     } else {
-        bounded_pointer.extent = FixedExtent {
-            .length = m_expression_parser->parse()
-        };
+        auto length = m_expression_parser->parse();
+        
+        if (length != nullptr) {
+            bounded_pointer.extent = FixedExtent {
+                .length = std::move(length)
+            };
+            is_extent_set = true;
+        }
+    }
+
+    if (!is_extent_set) {
+        diagnostics().report(make_expected("bounded pointer extent"));
     }
 
     if (!reader().consume(TokenType::RightSquareBracket)) {

@@ -8,9 +8,10 @@ FunctionParser::FunctionParser(TokenReader& reader_, DiagnosticsEngine& diagnost
     m_parameter_parser(reader_, diagnostics_),
     m_parameter_list_parser(reader_, diagnostics_)
 {
+    // Set pointers
+    m_type_parser.set_expression_parser(&m_expression_parser);
     m_statement_parser.set_expression_parser(&m_expression_parser);
-
-    // Initialize parameter parser
+    m_statement_parser.set_type_parser(&m_type_parser);
     m_parameter_parser.set_type_parser(&m_type_parser);
 
     // Initialize parameter list
@@ -27,9 +28,14 @@ AST::Ptr FunctionParser::parse() {
     } else {
         diagnostics().report(make_expected("function name"));
     }
-    
-    function.parameters = m_parameter_list_parser.parse();
-    
+   
+
+    if (reader().is(m_parameter_list_parser.opening())) {
+        function.parameters = m_parameter_list_parser.parse();
+    } else {
+        function.parameters = make_ast(AST::List{});
+    }
+
     if (reader().is(TokenType::LeftBracket)) {
         function.body = m_statement_parser.parse();
     }

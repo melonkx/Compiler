@@ -16,6 +16,14 @@ AST::Ptr StatementParser::parse() {
     // TODO: Throw if expression parser == nullptr
     // TODO: Throw if type parser == nullptr
 
+    if (m_expression_parser == nullptr) {
+        throw std::runtime_error("StatementParser::m_expression_parser == nullptr");
+    }
+
+    if (m_type_parser == nullptr) {
+        throw std::runtime_error("StatementParser::m_type_parser == nullptr");
+    }
+
     if (auto&& ptr = rule_selector().accept(); ptr) {
         return ptr;
     }
@@ -76,7 +84,7 @@ AST::Ptr StatementParser::parse_variable_declaration() {
     }
     else {
         // TODO: Better error messages!
-        diagnostics().report(make_expected("name"));  
+        diagnostics().report(make_expected("variable name"));  
     }
     
     if (reader().consume(TokenType::Colon)) {

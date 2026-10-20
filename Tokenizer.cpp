@@ -115,8 +115,6 @@ void Tokenizer::scan_symbol() {
     // Find the largest symbol
     for (std::size_t length = 0; length < symbol_length; ++length) {
         const auto symbol = m_scanner->selection();
-       
-        std::cout << "Symbol: [" << symbol << "] \n";
 
         if (auto it = m_symbols.find({symbol}); it != m_symbols.end()) {
             push_token(it->second);

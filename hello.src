@@ -1,0 +1,5 @@
+
+function Main {
+    const base : Int* = @ 1000
+    const x = base
+}

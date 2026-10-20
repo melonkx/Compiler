@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include <format>
 
 Parser::Parser(TokenReader& reader_, DiagnosticsEngine& diagnostics_)
     : m_reader(reader_), m_diagnostics(diagnostics_), m_rule_selector(m_reader)
@@ -8,7 +9,7 @@ Diagnostic Parser::make_expected(const std::string& message) {
     return {
         .code = "E001",
         .severity = Severity::Error,
-        .message = message,
+        .message = std::format("expected {}", message),
         .help = std::nullopt
     };
 }
