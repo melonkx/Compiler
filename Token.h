@@ -8,6 +8,7 @@ enum class TokenType {
     Const,
     Var,
     Unsafe,
+    Object,
     // Constructs
     If,
     Else,

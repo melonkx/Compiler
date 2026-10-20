@@ -35,24 +35,33 @@ struct AST {
         std::string name;
     };
 
+#pragma region Pointers
+
     struct PointerType {
         Ptr base_type;
     };
 
+
     struct BoundedPointerType {
+        struct UnknownExtent {};
+        struct FixedExtent {
+            Ptr length;
+        };
+
         Ptr base_type;
-        Ptr minimum;
-        Ptr maximum;
+        std::variant<UnknownExtent, FixedExtent> extent;
     };
+
+#pragma endregion
 
 #pragma endregion
 
 #pragma region Statements
     struct Variable {
-        std::string name;
-        Ptr initialization;
-        Ptr type;
         bool is_const{};
+        std::string name;
+        Ptr type;
+        Ptr initialization;
     };
 
     struct Block {
@@ -66,7 +75,7 @@ struct AST {
     };
 
     struct Return {
-        Ptr expr;
+        Ptr expression;
     };
 
 #pragma endregion

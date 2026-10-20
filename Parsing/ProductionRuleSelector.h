@@ -12,6 +12,7 @@ struct ProductionRule {
 
 class ProductionRuleSelector {
 public:
+    ProductionRuleSelector(TokenReader& reader_);
     AST::Ptr accept() const;
     void set(TokenType type, ProductionRule&& rule);
     bool contains(TokenType type) const;

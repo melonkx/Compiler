@@ -9,6 +9,8 @@ Tokenizer::Tokenizer() {
     m_keywords["function"] = Function;
     m_keywords["const"]   = Const;
     m_keywords["var"]     = Var;
+    m_keywords["object"]  = Object;
+    
     m_keywords["unsafe"]  = Unsafe;
     m_keywords["if"]      = If;
     m_keywords["else"]    = Else;

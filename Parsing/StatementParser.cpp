@@ -1,5 +1,6 @@
 #include "StatementParser.h"
 #include "ExpressionParser.h"
+#include "TypeParser.h"
 
 StatementParser::StatementParser(TokenReader& reader_, DiagnosticsEngine& diagnostics_) :
     Parser(reader_, diagnostics_)
@@ -12,6 +13,9 @@ StatementParser::StatementParser(TokenReader& reader_, DiagnosticsEngine& diagno
 }
 
 AST::Ptr StatementParser::parse() {
+    // TODO: Throw if expression parser == nullptr
+    // TODO: Throw if type parser == nullptr
+
     if (auto&& ptr = rule_selector().accept(); ptr) {
         return ptr;
     }
@@ -19,12 +23,20 @@ AST::Ptr StatementParser::parse() {
     return nullptr;
 }
 
+void StatementParser::set_expression_parser(ExpressionParser* parser) {
+    m_expression_parser = parser;
+}
+
+void StatementParser::set_type_parser(TypeParser* parser) {
+    m_type_parser = parser;
+}
+
 AST::Ptr StatementParser::parse_if() {
     AST::If if_statement;
     if_statement.condition = m_expression_parser->parse();
     
     if (!reader().consume(TokenType::Then)) {
-        // error: expected 'then' after if condition
+        diagnostics().report(make_expected("'then' after if condition")); 
     }
 
     if_statement.then_true = parse();
@@ -37,12 +49,47 @@ AST::Ptr StatementParser::parse_if() {
 }
 
 AST::Ptr StatementParser::parse_const() {
-    return nullptr;
+    auto decl = parse_variable_declaration();
+    AST::Variable* decl_var = (AST::Variable*)decl.get();
+    decl_var->is_const = true;
+    if (!decl_var->initialization) {
+        diagnostics().report(make_expected("constant initializer expression"));
+    }
+    return decl;
 }
 
 AST::Ptr StatementParser::parse_var() {
-    return nullptr;
+    auto decl = parse_variable_declaration();
+    AST::Variable* decl_var = (AST::Variable*)decl.get();
+
+    if (!decl_var->initialization && !decl_var->type) {
+        diagnostics().report(make_expected("variable initialization or type declaration"));
+    }
+    return decl;
 }
+
+AST::Ptr StatementParser::parse_variable_declaration() {
+    AST::Variable variable;
+    
+    if (reader().is(TokenType::Identifier)) {
+        variable.name = reader().advance().text;
+    }
+    else {
+        // TODO: Better error messages!
+        diagnostics().report(make_expected("name"));  
+    }
+    
+    if (reader().consume(TokenType::Colon)) {
+        variable.type = m_type_parser->parse();
+    }
+
+    if (reader().consume(TokenType::Equal)) {
+        variable.initialization = m_expression_parser->parse(); 
+    }
+    
+    return make_ast(std::move(variable));
+}
+
 
 AST::Ptr StatementParser::parse_block() {
     AST::Block block;
@@ -70,5 +117,7 @@ AST::Ptr StatementParser::parse_block() {
 }
 
 AST::Ptr StatementParser::parse_return() {
-    return nullptr;
+    AST::Return return_statement;
+    return_statement.expression = m_expression_parser->parse();
+    return make_ast(std::move(return_statement));
 }

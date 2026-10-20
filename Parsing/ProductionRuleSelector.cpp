@@ -1,5 +1,9 @@
 #include "ProductionRuleSelector.h"
 
+ProductionRuleSelector::ProductionRuleSelector(TokenReader& reader_) :
+    m_reader(reader_)
+{}
+
 const ProductionRule* ProductionRuleSelector::find_rule() const {
     if (const auto it = m_rules.find(m_reader.current().type); it != m_rules.end()) {
         return &it->second;

@@ -2,144 +2,227 @@
 
 #include <iostream>
 
-// Written by AI for temporary purposes.
-// (For debugging, I do not care if one-time helper functions are written by AI)
-// This compiler is otherwise free of slop
-void Print(const AST::Ptr& node, std::size_t indent = 0)
-{
-    const auto pad = [indent]() {
-        return std::string(indent * 2, ' ');
-    };
+#include <iostream>
+#include <string>
+#include <memory>
+#include <vector>
+#include <variant>
+#include <type_traits>
+#include <cstddef>
 
-    if (!node)
+namespace {
+    void Indent(std::size_t indent)
     {
-        std::cout << pad() << "<null>\n";
+        std::cout << std::string(indent, ' ');
+    }
+
+    void PrintChild(
+        const char* name,
+        const AST::Ptr& child,
+        std::size_t indent)
+    {
+        Indent(indent);
+        std::cout << name << ":\n";
+        Print(child, indent + 2);
+    }
+
+    template <typename T>
+    void PrintValue(const T& value, std::size_t indent)
+    {
+        using U = std::decay_t<T>;
+
+        // Recursively unwrap nested variants.
+        if constexpr (
+            std::is_same_v<U, AST::Top> ||
+            std::is_same_v<U, AST::Statement> ||
+            std::is_same_v<U, AST::Expression> ||
+            std::is_same_v<U, decltype(AST{}.data)>)
+        {
+            std::visit(
+                [indent](const auto& node)
+                {
+                    PrintValue(node, indent);
+                },
+                value);
+        }
+        else if constexpr (std::is_same_v<U, AST::Module>)
+        {
+            Indent(indent);
+            std::cout << "Module\n";
+
+            for (const auto& function : value.functions)
+                Print(function, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::Function>)
+        {
+            Indent(indent);
+            std::cout << "Function: " << value.name << '\n';
+
+            PrintChild("Parameters", value.parameters, indent + 2);
+            PrintChild("Body", value.body, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::FunctionParameter>)
+        {
+            Indent(indent);
+            std::cout << "FunctionParameter: " << value.name << '\n';
+
+            PrintChild("Type", value.type, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::List>)
+        {
+            Indent(indent);
+            std::cout << "List\n";
+
+            for (const auto& element : value.elements)
+                Print(element, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::FunctionParameters>)
+        {
+            Indent(indent);
+            std::cout << "FunctionParameters\n";
+
+            PrintChild("List", value.list, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::Type>)
+        {
+            Indent(indent);
+            std::cout << "Type: " << value.name << '\n';
+        }
+        else if constexpr (std::is_same_v<U, AST::PointerType>)
+        {
+            Indent(indent);
+            std::cout << "PointerType\n";
+
+            PrintChild("BaseType", value.base_type, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::BoundedPointerType>)
+        {
+            Indent(indent);
+            std::cout << "BoundedPointerType\n";
+
+            PrintChild("BaseType", value.base_type, indent + 2);
+
+            Indent(indent + 2);
+            std::cout << "Extent:\n";
+
+            std::visit(
+                [indent](const auto& extent)
+                {
+                    using E = std::decay_t<decltype(extent)>;
+
+                    if constexpr (
+                        std::is_same_v<
+                            E, AST::BoundedPointerType::UnknownExtent>)
+                    {
+                        Indent(indent + 4);
+                        std::cout << "UnknownExtent\n";
+                    }
+                    else
+                    {
+                        Indent(indent + 4);
+                        std::cout << "FixedExtent\n";
+
+                        PrintChild(
+                            "Length", extent.length, indent + 6);
+                    }
+                },
+                value.extent);
+        }
+        else if constexpr (std::is_same_v<U, AST::Variable>)
+        {
+            Indent(indent);
+            std::cout << "Variable: " << value.name
+                      << (value.is_const ? " (const)" : "") << '\n';
+
+            PrintChild("Type", value.type, indent + 2);
+            PrintChild("Initialization", value.initialization, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::Block>)
+        {
+            Indent(indent);
+            std::cout << "Block\n";
+
+            for (const auto& statement : value.statements)
+                Print(statement, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::If>)
+        {
+            Indent(indent);
+            std::cout << "If\n";
+
+            PrintChild("Condition", value.condition, indent + 2);
+            PrintChild("Then", value.then_true, indent + 2);
+            PrintChild("Else", value.then_false, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::Return>)
+        {
+            Indent(indent);
+            std::cout << "Return\n";
+
+            PrintChild("Expression", value.expression, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::Unary>)
+        {
+            Indent(indent);
+            std::cout << "Unary (type "
+                      << static_cast<int>(value.type) << ")\n";
+
+            PrintChild("Destination", value.destination, indent + 2);
+            PrintChild("Source", value.source, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::Binary>)
+        {
+            Indent(indent);
+            std::cout << "Binary (type "
+                      << static_cast<int>(value.type) << ")\n";
+
+            PrintChild("Destination", value.destination, indent + 2);
+            PrintChild("Left", value.left, indent + 2);
+            PrintChild("Right", value.right, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::Identifier>)
+        {
+            Indent(indent);
+            std::cout << "Identifier: " << value.name << '\n';
+        }
+        else if constexpr (std::is_same_v<U, AST::LiteralInteger>)
+        {
+            Indent(indent);
+            std::cout << "LiteralInteger: " << value.value << '\n';
+        }
+        else if constexpr (std::is_same_v<U, AST::LiteralString>)
+        {
+            Indent(indent);
+            std::cout << "LiteralString: \"" << value.text << "\"\n";
+        }
+        else if constexpr (std::is_same_v<U, AST::Address>)
+        {
+            Indent(indent);
+            std::cout << "Address\n";
+
+            PrintChild("Value", value.value, indent + 2);
+        }
+        else if constexpr (std::is_same_v<U, AST::BoundedAddress>)
+        {
+            Indent(indent);
+            std::cout << "BoundedAddress\n";
+
+            PrintChild("Value", value.value, indent + 2);
+            PrintChild("Min", value.min, indent + 2);
+            PrintChild("Max", value.max, indent + 2);
+        }
+    }
+}
+
+void Print(const AST::Ptr& ptr, std::size_t indent)
+{
+    if (!ptr)
+    {
+        Indent(indent);
+        std::cout << "(null)\n";
         return;
     }
 
-    const auto print_child = [](const AST::Ptr& child, std::size_t level) {
-        Print(child, level);
-    };
-
-    std::visit([&](const auto& category)
-    {
-        using Category = std::decay_t<decltype(category)>;
-
-        std::visit([&](const auto& value)
-        {
-            using T = std::decay_t<decltype(value)>;
-
-            // Top-level nodes
-            if constexpr (std::is_same_v<T, AST::Module>)
-            {
-                std::cout << pad() << "Module\n";
-                for (const auto& function : value.functions)
-                    print_child(function, indent + 1);
-            }
-            else if constexpr (std::is_same_v<T, AST::Function>)
-            {
-                std::cout << pad() << "Function: " << value.name << '\n';
-                std::cout << pad() << "  Parameters:\n";
-                print_child(value.parameters, indent + 2);
-                std::cout << pad() << "  Body:\n";
-                print_child(value.body, indent + 2);
-            }
-            else if constexpr (std::is_same_v<T, AST::FunctionParameters>)
-            {
-                std::cout << pad() << "FunctionParameters\n";
-                for (const auto& parameter : value.parameters)
-                    print_child(parameter, indent + 1);
-            }
-            else if constexpr (std::is_same_v<T, AST::FunctionParameter>)
-            {
-                std::cout << pad() << "Parameter: " << value.name << '\n';
-                print_child(value.type, indent + 1);
-            }
-            else if constexpr (std::is_same_v<T, AST::Type>)
-            {
-                std::cout << pad() << "Type: " << value.name << '\n';
-            }
-            else if constexpr (std::is_same_v<T, AST::BoundedPointerType>)
-            {
-                std::cout << pad() << "BoundedPointerType\n";
-                std::cout << pad() << "  Base type:\n";
-                print_child(value.base_type, indent + 2);
-                std::cout << pad() << "  Minimum:\n";
-                print_child(value.minimum, indent + 2);
-                std::cout << pad() << "  Maximum:\n";
-                print_child(value.maximum, indent + 2);
-            }
-            else if constexpr (std::is_same_v<T, AST::PointerType>) {
-                std::cout << pad() << "PointerType\n";
-                std::cout << pad() << "  Base type:\n";
-                print_child(value.base_type, indent + 2);
-            }
-
-            // Statements
-            else if constexpr (std::is_same_v<T, AST::Variable>)
-            {
-                std::cout << pad() << "Variable: " << value.name << '\n';
-                std::cout << pad() << "  Type:\n";
-                print_child(value.type, indent + 2);
-                std::cout << pad() << "  Initialization:\n";
-                print_child(value.initialization, indent + 2);
-            }
-            else if constexpr (std::is_same_v<T, AST::Block>)
-            {
-                std::cout << pad() << "Block\n";
-                for (const auto& statement : value.statements)
-                    print_child(statement, indent + 1);
-            }
-            else if constexpr (std::is_same_v<T, AST::If>)
-            {
-                std::cout << pad() << "If\n";
-                std::cout << pad() << "  Condition:\n";
-                print_child(value.condition, indent + 2);
-                std::cout << pad() << "  Then:\n";
-                print_child(value.then_true, indent + 2);
-                std::cout << pad() << "  Else:\n";
-                print_child(value.then_false, indent + 2);
-            }
-
-            // Expressions
-            else if constexpr (std::is_same_v<T, AST::Unary>)
-            {
-                std::cout << pad() << "Unary\n";
-                std::cout << pad() << "  Destination:\n";
-                print_child(value.destination, indent + 2);
-                std::cout << pad() << "  Source:\n";
-                print_child(value.source, indent + 2);
-            }
-            else if constexpr (std::is_same_v<T, AST::Binary>)
-            {
-                std::cout << pad() << "Binary\n";
-                std::cout << pad() << "  Destination:\n";
-                print_child(value.destination, indent + 2);
-                std::cout << pad() << "  Left:\n";
-                print_child(value.left, indent + 2);
-                std::cout << pad() << "  Right:\n";
-                print_child(value.right, indent + 2);
-            }
-            else if constexpr (std::is_same_v<T, AST::LiteralInteger>)
-            {
-                std::cout << pad() << "Integer: " << value.value << '\n';
-            }
-            else if constexpr (std::is_same_v<T, AST::Address>)
-            {
-                std::cout << pad() << "Address\n";
-                print_child(value.value, indent + 1);
-            }
-            else if constexpr (std::is_same_v<T, AST::BoundedAddress>)
-            {
-                std::cout << pad() << "BoundedAddress\n";
-                std::cout << pad() << "  Value:\n";
-                print_child(value.value, indent + 2);
-                std::cout << pad() << "  Minimum:\n";
-                print_child(value.min, indent + 2);
-                std::cout << pad() << "  Maximum:\n";
-                print_child(value.max, indent + 2);
-            }
-
-        }, category);
-    }, node->data);
+    PrintValue(ptr->data, indent);
 }
+

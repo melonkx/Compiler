@@ -9,7 +9,7 @@ AST::Ptr ListParser::parse() {
         throw std::runtime_error("ListParser::m_element_parser == nullptr");
     }
     
-    if (!reader.consume(m_opening)) {
+    if (!reader().consume(m_opening)) {
         auto error = make_expected("to_string (m_opening)");
         // report.help = (source code with the delimiter included)
         diagnostics().report(error);
@@ -25,15 +25,15 @@ AST::Ptr ListParser::parse() {
             break;
         }
 
-        auto elem = m_element_parser->parse();
+        auto element = m_element_parser->parse();
         
-        if (elem) {
-            list.elements.emplace_back(std::move(elem));
+        if (element) {
+            list.elements.emplace_back(std::move(element));
         }
 
-        if(reader().is(m_closing)) continue;
+        if (reader().is(m_closing)) continue;
 
-        if (!reader.consume(TokenType::Comma)) {
+        if (!reader().consume(TokenType::Comma)) {
             auto error = make_expected("comma");
             diagnostics().report(error);
         }
@@ -42,7 +42,7 @@ AST::Ptr ListParser::parse() {
     if (!found_closing_delimiter) {
         // unexpected end of file
         //auto report = ...
-        diagnostics.report({.code = "E002", .message = "unexpected end of file"});
+        diagnostics().report({.code = "E002", .message = "unexpected end of file"});
         return nullptr;
     }
 
