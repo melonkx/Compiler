@@ -9,6 +9,7 @@ enum class TokenType {
     Var,
     Unsafe,
     Object,
+
     // Constructs
     If,
     Else,
@@ -20,6 +21,7 @@ enum class TokenType {
     In,
     Enum,
     BitEnum,
+
     // Literals
     LiteralInteger,
     LiteralString,
@@ -38,6 +40,7 @@ enum class TokenType {
     RightBracket,           // }
     LeftSquareBracket,      // [
     RightSquareBracket,     // ]
+    At,                     // @
     Dot,                    // .
     TripleDot,              // ...
     FunctionArrow,          // =>
@@ -50,9 +53,12 @@ enum class TokenType {
     GreaterThan,            // >
     GreaterThanOrEqual,     // >=
     Bang,                   // !
-    Tilde,                  // ~
     BitshiftLeft,           // <<
     BitshiftRight,          // >>
+    Tilde,                  // ~
+    Ampersand,              // &
+    Pipe,                   // |
+    Hat,                    // ^
 
     // Math symbols
     Plus,                   // +

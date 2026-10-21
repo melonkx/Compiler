@@ -23,24 +23,15 @@ struct AST {
         Ptr type;
     };
 
-    struct List {
-        std::vector<Ptr> elements;
-    };
+    struct List { std::vector<Ptr> elements; };
 
-    struct FunctionParameters {
-        Ptr list;
-    };
+    struct FunctionParameters { Ptr list; };
 
-    struct Type {
-        std::string name;
-    };
+    struct Type { std::string name; };
 
 #pragma region Pointers
 
-    struct PointerType {
-        Ptr base_type;
-    };
-
+    struct PointerType { Ptr base_type; };
 
     struct BoundedPointerType {
         struct UnknownExtent {};
@@ -96,27 +87,11 @@ struct AST {
         Ptr right;
     };
 
-    struct Identifier {
-        std::string name;
-    };
-
-    struct LiteralInteger {
-        long long value;
-    };
-
-    struct LiteralString {
-        std::string text;
-    };
-
-    struct Address {
-        Ptr value;
-    };
-
-    struct BoundedAddress {
-        Ptr value;
-        Ptr min;
-        Ptr max;
-    };
+    struct Identifier { std::string name; };
+    struct LiteralInteger { long long value; };
+    struct LiteralString { std::string text; };
+    struct AddressOf { Ptr value; };
+    struct AddressFrom { Ptr value; };
 
 #pragma endregion
    
@@ -136,8 +111,7 @@ struct AST {
     using Expression = std::variant<
         Unary, Binary,
         Identifier, LiteralInteger, LiteralString,
-        Address, BoundedAddress
-    >;
+        AddressOf, AddressFrom>;
 
     std::variant<Top, Statement, Expression, List> data;
 };

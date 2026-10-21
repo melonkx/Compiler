@@ -22,6 +22,7 @@ private:
 private:
     void scan_symbol();
     void push_token(TokenType type);
+    void set_symbol(std::string_view sym, TokenType type);
 
 private:
     std::vector<Token> m_tokens;
@@ -29,5 +30,6 @@ private:
     const SourceFile* m_source_file;
     std::unordered_map<std::string_view, TokenType> m_keywords;
     std::unordered_map<std::string_view, TokenType> m_symbols;
+    std::set<char> m_symchars;
 };
  

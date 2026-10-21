@@ -4,9 +4,11 @@
 ExpressionParser::ExpressionParser(TokenReader& reader_, DiagnosticsEngine& diagnostics_) :
     Parser(reader_, diagnostics_) 
 {
-    set_rule(TokenType::Identifier,     &ExpressionParser::parse_identifier,      false);
-    set_rule(TokenType::LiteralInteger, &ExpressionParser::parse_literal_integer, false);
-    set_rule(TokenType::LiteralString,  &ExpressionParser::parse_literal_string,  false);
+    set_rule(TokenType::Identifier,     &ExpressionParser::parse_identifier,        false);
+    set_rule(TokenType::At,             &ExpressionParser::parse_address_from,      true);
+    set_rule(TokenType::Ampersand,      &ExpressionParser::parse_address_of,        true);
+    set_rule(TokenType::LiteralInteger, &ExpressionParser::parse_literal_integer,   false);
+    set_rule(TokenType::LiteralString,  &ExpressionParser::parse_literal_string,    false);
 }
 
 AST::Ptr ExpressionParser::parse() {
@@ -22,6 +24,14 @@ AST::Ptr ExpressionParser::parse_identifier() {
     identifier.name = reader().advance().text;
     // TODO: Binary operations!
     return make_ast(std::move(identifier));
+}
+
+AST::Ptr ExpressionParser::parse_address_of() {
+    return make_ast(AST::AddressOf{parse()});
+}
+
+AST::Ptr ExpressionParser::parse_address_from() {
+    return make_ast(AST::AddressFrom{parse()});
 }
 
 AST::Ptr ExpressionParser::parse_literal_integer() {

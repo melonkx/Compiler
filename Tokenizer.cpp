@@ -32,7 +32,11 @@ Tokenizer::Tokenizer() {
     m_symbols["]"]    = RightSquareBracket;
     m_symbols["{"]    = LeftBracket;
     m_symbols["}"]    = RightBracket;
+    m_symbols["@"]    = At;
 
+    m_symbols["^"]    = Hat;
+    m_symbols["&"]    = Ampersand;
+    m_symbols["|"]     = Pipe;
 
     m_symbols["."]    = Dot;
     m_symbols["..."]  = TripleDot;
@@ -98,6 +102,13 @@ bool Tokenizer::is_symbol(const char ch) {
     }
 
     return false;
+}
+
+void Tokenizer::set_symbol(const std::string_view sym, const TokenType type) {
+    m_symbols[sym] = type;
+    for (const char ch : sym) {
+        m_symchars.try_emplace(ch);
+    }
 }
 
 void Tokenizer::scan_symbol() {

@@ -195,22 +195,20 @@ namespace {
             Indent(indent);
             std::cout << "LiteralString: \"" << value.text << "\"\n";
         }
-        else if constexpr (std::is_same_v<U, AST::Address>)
+        else if constexpr (std::is_same_v<U, AST::AddressOf>)
         {
             Indent(indent);
-            std::cout << "Address\n";
+            std::cout << "AddressOf\n";
 
             PrintChild("Value", value.value, indent + 2);
         }
-        else if constexpr (std::is_same_v<U, AST::BoundedAddress>)
+        else if constexpr (std::is_same_v<U, AST::AddressFrom>)
         {
             Indent(indent);
-            std::cout << "BoundedAddress\n";
+            std::cout << "AddressFrom\n";
 
             PrintChild("Value", value.value, indent + 2);
-            PrintChild("Min", value.min, indent + 2);
-            PrintChild("Max", value.max, indent + 2);
-        }
+        } 
     }
 }
 

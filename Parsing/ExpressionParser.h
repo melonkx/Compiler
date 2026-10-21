@@ -7,6 +7,8 @@ public:
     AST::Ptr parse() override;
 private:
     AST::Ptr parse_identifier();
+    AST::Ptr parse_address_of();
+    AST::Ptr parse_address_from();
     AST::Ptr parse_literal_integer();
     AST::Ptr parse_literal_string();
 };
