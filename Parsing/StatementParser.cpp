@@ -114,6 +114,7 @@ AST::Ptr StatementParser::parse_block() {
         } else {
             // error...
             diagnostics().report(make_expected("statement in block"));
+            reader().advance();
         }
     }
 

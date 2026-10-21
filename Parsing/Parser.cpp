@@ -7,9 +7,10 @@ Parser::Parser(TokenReader& reader_, DiagnosticsEngine& diagnostics_)
 
 Diagnostic Parser::make_expected(const std::string& message) {
     return {
+        .location = reader().current().location,
         .code = "E001",
         .severity = Severity::Error,
-        .message = std::format("expected {}", message),
+        .message = std::format("expected {} (got \"{}\")", message, reader().current().text),
         .help = std::nullopt
     };
 }

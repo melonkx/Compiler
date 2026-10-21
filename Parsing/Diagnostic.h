@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "../SourceLocation.h"
 
 enum class Severity {
     Error,
@@ -9,6 +10,7 @@ enum class Severity {
 };
 
 struct Diagnostic {
+    SourceLocation location;
     std::string code;
     Severity severity;
     std::string message;

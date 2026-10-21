@@ -3,70 +3,11 @@
 #include <algorithm>
 #include <iostream>
 
-Tokenizer::Tokenizer() {
-    using enum TokenType;
-
-    m_keywords["function"] = Function;
-    m_keywords["const"]   = Const;
-    m_keywords["var"]     = Var;
-    m_keywords["object"]  = Object;
-    
-    m_keywords["unsafe"]  = Unsafe;
-    m_keywords["if"]      = If;
-    m_keywords["else"]    = Else;
-    m_keywords["elif"]    = Elif;
-    m_keywords["then"]    = Then;
-    m_keywords["return"]  = Return;
-    m_keywords["for"]     = For;
-    m_keywords["ranged"]  = Ranged;
-    m_keywords["in"]      = In;
-    m_keywords["enum"]    = Enum;
-    m_keywords["bitenum"] = BitEnum;
-
-    m_symbols[":"]    = Colon;
-    m_symbols[","]    = Comma;
-    m_symbols["="]    = Equal;
-    m_symbols["("]    = LeftParen;
-    m_symbols[")"]    = RightParen;
-    m_symbols["["]    = LeftSquareBracket;
-    m_symbols["]"]    = RightSquareBracket;
-    m_symbols["{"]    = LeftBracket;
-    m_symbols["}"]    = RightBracket;
-    m_symbols["@"]    = At;
-
-    m_symbols["^"]    = Hat;
-    m_symbols["&"]    = Ampersand;
-    m_symbols["|"]     = Pipe;
-
-    m_symbols["."]    = Dot;
-    m_symbols["..."]  = TripleDot;
-    m_symbols["=>"]   = FunctionArrow;
-    m_symbols["!!"]   = BangBang;
-
-    m_symbols["<"]    = LessThan;
-    m_symbols["<="]   = LessThanOrEqual;
-    m_symbols["=="]   = EqualEqual;
-    m_symbols[">"]    = GreaterThan;
-    m_symbols[">="]   = GreaterThanOrEqual;
-    m_symbols["!"]    = Bang;
-    m_symbols["~"]    = Tilde;
-    m_symbols["<<"]   = BitshiftLeft;
-    m_symbols[">>"]   = BitshiftRight;
-
-    m_symbols["+"]    = Plus;
-    m_symbols["-"]    = Minus;
-    m_symbols["*"]    = Star;
-    m_symbols["/"]    = Slash;
-    m_symbols["+="]   = PlusEqual;
-    m_symbols["-="]   = MinusEqual;
-    m_symbols["*="]   = StarEqual;
-    m_symbols["/="]   = SlashEqual;
-}
-
 bool Tokenizer::in_identifier(const char ch, const std::size_t index) {
     if (ch >= 'a' && ch <= 'z') return true;
     if (ch >= 'A' && ch <= 'Z') return true;
     if (ch == '_') return true;
+    if (index != 0 && isdigit(ch)) return true;
     return false;
 }
 
@@ -78,36 +19,14 @@ bool Tokenizer::in_number(const char ch, const std::size_t index) {
     return ch >= '0' && ch <= '9';
 }
 
-bool Tokenizer::is_symbol(const char ch) {
-    switch (ch) {
-        case '.':
-        case ':':
-        case ',':
-        case '=':
-        case '(':
-        case ')':
-        case '{':
-        case '}':
-        case '[':
-        case ']':
-        case '<':
-        case '>':
-        case '!':
-        case '~':
-        case '+':
-        case '-':
-        case '*':
-        case '/':
-            return true;
-    }
-
-    return false;
+bool Tokenizer::is_symbolic_char(const char ch) {
+    return m_symchars.contains(ch);
 }
 
-void Tokenizer::set_symbol(const std::string_view sym, const TokenType type) {
+void Tokenizer::load_symbol(const std::string_view sym, const TokenType type) {
     m_symbols[sym] = type;
     for (const char ch : sym) {
-        m_symchars.try_emplace(ch);
+        m_symchars.emplace(ch);
     }
 }
 
@@ -116,7 +35,7 @@ void Tokenizer::scan_symbol() {
  
     // Find the maximal symbol length
     for (std::size_t offset = 0; offset < symbol_length; ++offset) {
-        if (!is_symbol(m_scanner->peek(offset))) {
+        if (!is_symbolic_char(m_scanner->peek(offset))) {
             --symbol_length;
         }
     }
@@ -161,26 +80,38 @@ std::vector<Token> Tokenizer::tokenize(const SourceFile& source_file) {
     m_scanner = &scanner;
     m_source_file = &source_file;
 
+    const auto lm_in_identifier = [&](const char ch, size_t idx) {
+        return in_identifier(ch, idx);
+    };
+
+    const auto lm_in_dollar_identifier = [&](const char ch, size_t idx) {
+        return in_dollar_identifier(ch, idx);
+    };
+
+    const auto lm_in_number = [&](const char ch, size_t idx) {
+        return in_number(ch, idx);
+    };
+
     while (!m_scanner->at_end()) {
         m_scanner->new_scan();
 
         if (const char ch = m_scanner->peek(); in_identifier(ch, 0)) {
-            m_scanner->scan(in_identifier);
+            m_scanner->scan(lm_in_identifier);
             auto type = TokenType::Identifier;
             if (const auto keyword_iter = m_keywords.find({m_scanner->selection()}); keyword_iter != m_keywords.end()) {
                 type = keyword_iter->second;
             }
             push_token(type);
         }
-        else if (is_symbol(ch)) {
+        else if (is_symbolic_char(ch)) {
             scan_symbol();
         }
         else if (in_number(ch, 0)) {
-            m_scanner->scan(in_number);
+            m_scanner->scan(lm_in_number);
             push_token(TokenType::LiteralInteger);
         }
         else if (ch == '$') {
-            m_scanner->scan(in_dollar_identifier);
+            m_scanner->scan(lm_in_dollar_identifier);
             push_token(TokenType::DollarIdentifier);
         }
         else {
@@ -189,4 +120,19 @@ std::vector<Token> Tokenizer::tokenize(const SourceFile& source_file) {
     }
 
     return m_tokens;
+}
+
+void Tokenizer::load_keywords(std::span<const std::pair<std::string_view, TokenType>> keywords) {
+    m_keywords.clear();
+    for (const auto& [text, type] : keywords) {
+        m_keywords[text] = type;
+    }
+}
+
+void Tokenizer::load_symbols(std::span<const std::pair<std::string_view, TokenType>> symbols) {
+    m_symbols.clear();
+    m_symchars.clear();
+    for (const auto& [text, type] : symbols) {
+        load_symbol(text, type);
+    }
 }
