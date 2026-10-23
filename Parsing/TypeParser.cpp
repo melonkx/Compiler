@@ -39,14 +39,13 @@ void TypeParser::set_expression_parser(ExpressionParser* parser) {
     m_expression_parser = parser;
 }
 
-AST::Ptr TypeParser::parse_pointer(AST::Ptr&& base_type) {
-    auto ptr_type = make_ast(AST::PointerType{.base_type = std::move(base_type)});
-
+AST::Ptr TypeParser::parse_pointer(AST::Ptr&& base_type) { 
     if (reader().consume(TokenType::LeftSquareBracket)) {
-        return parse_bounded_pointer(std::move(ptr_type));
+        return parse_bounded_pointer(std::move(base_type));
     }
-
-    return std::move(ptr_type);
+    else {
+        return make_ast(AST::PointerType{.base_type = std::move(base_type)});
+    }
 }
 
 AST::Ptr TypeParser::parse_bounded_pointer(AST::Ptr&& base_type) {
@@ -57,7 +56,7 @@ AST::Ptr TypeParser::parse_bounded_pointer(AST::Ptr&& base_type) {
     BoundedPointer bounded_pointer {.base_type = std::move(base_type)};
     bool is_extent_set = false;
 
-    if (reader().consume(TokenType::TripleDot)) {
+    if (reader().consume(TokenType::DoubleDot)) {
         bounded_pointer.extent = UnknownExtent{};
         is_extent_set = true;
     } else {
@@ -77,6 +76,8 @@ AST::Ptr TypeParser::parse_bounded_pointer(AST::Ptr&& base_type) {
 
     if (!reader().consume(TokenType::RightSquareBracket)) {
         diagnostics().report(make_expected("] to close bounded pointer"));
+        reader().advance();
+        return nullptr;
     }
 
     return make_ast(bounded_pointer);

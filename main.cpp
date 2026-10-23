@@ -15,7 +15,8 @@ static void load_keywords(Tokenizer& tokenizer) {
         {"elif", Elif},
         {"return", Return},
         {"const", Const},
-        {"var", Var}
+        {"var", Var},
+        {"as", As}
     };
 
     tokenizer.load_keywords(keywords);
@@ -34,9 +35,11 @@ static void load_symbols(Tokenizer& tokenizer) {
 
         {":", Colon},
         {".", Dot},
-        {"...", TripleDot},
+        {",", Comma},
+        {"..", DoubleDot},
 
         {"=", Equal},
+        {"=>", Arrow},
         {"@", At},
         {"&", Ampersand},
 
@@ -45,6 +48,22 @@ static void load_symbols(Tokenizer& tokenizer) {
         {"-", Minus},
         {"*", Star},
         {"/", Slash},
+    
+        // Comparison logic
+        {"<", LessThan},
+        {"<=", LessThanOrEqual},
+        {"==", EqualEqual},
+        {">", GreaterThan},
+        {">=", GreaterThanOrEqual},
+        
+        // Boolean logic
+        {"!", Bang},
+        {"~", Tilde},
+        {"^", Hat},
+        {"|", Pipe},
+        {"<<", BitshiftLeft},
+        {">>", BitshiftRight}
+        
     };
 
     tokenizer.load_symbols(symbols);
@@ -69,7 +88,10 @@ int main() {
     DiagnosticsEngine diagnostics_engine;
 
     diagnostics_engine.hook([](const Diagnostic& diagnostic) {
-        const auto red = "\e[1;31m";
+        const char* red = "\e[1;31m";
+        const char* yellow = "\e[1;33m";
+        const char* cyan = "\e[1;36m";
+
         const auto underline = "\e[4;37m";
         const auto bold = "\e[1;37m";
         const auto reset = "\e[0m";
@@ -78,13 +100,34 @@ int main() {
         std::cerr << loc.path;
         std::cerr << ':' << loc.line;
         std::cerr << ':' << loc.column << ": ";
-        std::cerr << red << "error: " << reset;
+
+        const char* leader;
+        const char* color;
+
+        switch (diagnostic.severity) {
+            case Severity::Error:
+                leader = "error: ";
+                color = red;
+                break;
+
+            case Severity::Warning:
+                leader = "warn: ";
+                color = yellow;
+                break;
+
+            case Severity::Note:
+                leader = "note: ";
+                color = cyan;
+                break;
+        }
+        
+        std::cerr << color << leader << reset;
         std::cerr << '[' << diagnostic.code << "] ";
         std::cerr << diagnostic.message << std::endl;
     });
 
     ModuleParser module_parser (token_reader, diagnostics_engine);
-
+ 
     auto ast = module_parser.parse();
     Print(ast, 2);
 

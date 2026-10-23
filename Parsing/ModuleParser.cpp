@@ -17,7 +17,8 @@ AST::Ptr ModuleParser::parse() {
         else if (reader().consume(TokenType::Object)) {
             // TODO: object parsing    
         } else {
-            diagnostics().report(make_expected("'function' or 'object' at top-level"));
+            diagnostics().report(make_expected("function or object declaration"));
+            reader().advance();
             break;
         }
     }

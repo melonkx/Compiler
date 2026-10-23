@@ -10,12 +10,10 @@ StatementParser::StatementParser(TokenReader& reader_, DiagnosticsEngine& diagno
     set_rule(TokenType::Const,          &StatementParser::parse_const);
     set_rule(TokenType::Var,            &StatementParser::parse_var);
     set_rule(TokenType::LeftBracket,    &StatementParser::parse_block);
+    set_rule(TokenType::Identifier,     &StatementParser::parse_identifier, false);
 }
 
 AST::Ptr StatementParser::parse() {
-    // TODO: Throw if expression parser == nullptr
-    // TODO: Throw if type parser == nullptr
-
     if (m_expression_parser == nullptr) {
         throw std::runtime_error("StatementParser::m_expression_parser == nullptr");
     }
@@ -24,7 +22,14 @@ AST::Ptr StatementParser::parse() {
         throw std::runtime_error("StatementParser::m_type_parser == nullptr");
     }
 
+    // Consume any stray end of statements
+    reader().consume(TokenType::EndOfStatement);
+
     if (auto&& ptr = rule_selector().accept(); ptr) {
+        if (!reader().consume(TokenType::EndOfStatement)) {
+            diagnostics().report(make_expected("end of statement"));
+        }
+        
         return ptr;
     }
     // .. error: expected statement
@@ -129,4 +134,16 @@ AST::Ptr StatementParser::parse_return() {
     AST::Return return_statement;
     return_statement.expression = m_expression_parser->parse();
     return make_ast(std::move(return_statement));
+}
+
+AST::Ptr StatementParser::parse_identifier() {
+    auto identifier = make_ast(AST::Identifier{reader().advance().text});
+    
+    if (reader().is(m_expression_parser->argument_list_parser().opening())) {
+        return m_expression_parser->parse_function_call(std::move(identifier));
+    }
+
+    diagnostics().report(make_expected("function call"));
+    reader().advance();
+    return nullptr;
 }

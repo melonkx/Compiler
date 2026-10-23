@@ -17,6 +17,7 @@ private:
     AST::Ptr parse_const();
     AST::Ptr parse_var();
     AST::Ptr parse_variable_declaration();
+    AST::Ptr parse_identifier();
 private:
     ExpressionParser* m_expression_parser {};
     TypeParser* m_type_parser{};

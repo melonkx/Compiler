@@ -92,6 +92,10 @@ struct AST {
     struct LiteralString { std::string text; };
     struct AddressOf { Ptr value; };
     struct AddressFrom { Ptr value; };
+    struct Call {
+        Ptr function;
+        Ptr arguments;
+    };
 
 #pragma endregion
    
@@ -111,6 +115,7 @@ struct AST {
     using Expression = std::variant<
         Unary, Binary,
         Identifier, LiteralInteger, LiteralString,
+        Call,
         AddressOf, AddressFrom>;
 
     std::variant<Top, Statement, Expression, List> data;

@@ -61,7 +61,10 @@ void Tokenizer::scan_symbol() {
 void Tokenizer::push_token(const TokenType type) {
     m_tokens.push_back(Token{
             .type = type, 
-            .text = std::string(m_scanner->selection()),
+            .text = 
+                type == TokenType::EndOfStatement ? 
+                "<EOS>" : 
+                std::string(m_scanner->selection()),
             .location = {
                .line = m_scanner->line(),
                .column = m_scanner->column(),
@@ -113,6 +116,28 @@ std::vector<Token> Tokenizer::tokenize(const SourceFile& source_file) {
         else if (ch == '$') {
             m_scanner->scan(lm_in_dollar_identifier);
             push_token(TokenType::DollarIdentifier);
+        }
+        else if (ch == '#') {   // Comment
+            // read until new line or end of file
+            while (!m_scanner->at_end()) {
+                if (m_scanner->peek() == '\n') break;
+                m_scanner->advance();
+            }
+        }
+        else if (ch == '\n' || ch == ';') {
+            bool has_duplicate = false;
+
+            if (!m_tokens.empty()) {
+                if (m_tokens.back().type == TokenType::EndOfStatement) {
+                    has_duplicate = true;
+                }
+            }
+            
+            if  (!has_duplicate) {
+                push_token(TokenType::EndOfStatement);
+            }
+
+            m_scanner->advance();
         }
         else {
             m_scanner->advance();

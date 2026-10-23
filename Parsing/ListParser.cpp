@@ -36,6 +36,7 @@ AST::Ptr ListParser::parse() {
         if (!reader().consume(TokenType::Comma)) {
             auto error = make_expected("comma");
             diagnostics().report(error);
+            reader().advance();
         }
     }
 

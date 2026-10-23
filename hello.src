@@ -1,4 +1,38 @@
+function MakeArray {
+    const array = [Foo(x) for x in [0,1,2,3,4]]
+}
+
+function MakeSpanFromAddress (address : Address) => address as Int* .. 4;
+
+function SpansFromPointer {
+    # A pointer to a single integer
+    const single = @16 as Int *
+    const length = 100
+
+    const endless_span  = single ..
+    const limited_span  = single .. length
+}
+
+function SpansFromArray {
+    const array = [1,2,3,4,5];
+    const span  = array[..3];
+    const span2 = array[3..];
+    const span3 = array[1..4];
+}
+
+function UseEndlessSpan (span : Int*[..]) {
+    # Not ideal:
+    for (var index = 0sz; index < 100sz; index++) {
+        span[index] = Foo()
+    }
+
+    # Good
+    const limited = span[..100sz]
+    limited[..$value] = Foo()
+
+    # Good
+    span[0sz .. 100sz : $val] = Foo($val)
+}
+
 function Main {
-    const base : Int* = @ 1000
-    const x = base
 }

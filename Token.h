@@ -3,24 +3,16 @@
 #include "SourceLocation.h"
 
 enum class TokenType {
-    // Reserved Words:
     Function,
     Const,
     Var,
-    Unsafe,
     Object,
-
-    // Constructs
     If,
     Else,
     Elif,
     Then,
     Return,
-    For,
-    Ranged,
-    In,
-    Enum,
-    BitEnum,
+    As,
 
     // Literals
     LiteralInteger,
@@ -42,9 +34,8 @@ enum class TokenType {
     RightSquareBracket,     // ]
     At,                     // @
     Dot,                    // .
-    TripleDot,              // ...
-    FunctionArrow,          // =>
-    BangBang,               // !!
+    DoubleDot,              // ..
+    Arrow,                  // =>
 
     // Logical symbols
     LessThan,               // <
@@ -55,6 +46,7 @@ enum class TokenType {
     Bang,                   // !
     BitshiftLeft,           // <<
     BitshiftRight,          // >>
+ 
     Tilde,                  // ~
     Ampersand,              // &
     Pipe,                   // |
@@ -65,10 +57,10 @@ enum class TokenType {
     Minus,                  // -
     Star,                   // *
     Slash,                  // /
-    PlusEqual,              // +=
-    MinusEqual,             // -=
-    StarEqual,              // *=
-    SlashEqual,             // /=
+
+
+    // NOTE: Automatically added at the end of a line
+    EndOfStatement                     // ;
 };
 
 struct Token {

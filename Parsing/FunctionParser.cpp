@@ -29,7 +29,6 @@ AST::Ptr FunctionParser::parse() {
         diagnostics().report(make_expected("function name"));
     }
    
-
     if (reader().is(m_parameter_list_parser.opening())) {
         function.parameters = m_parameter_list_parser.parse();
     } else {
@@ -39,14 +38,19 @@ AST::Ptr FunctionParser::parse() {
     if (reader().is(TokenType::LeftBracket)) {
         function.body = m_statement_parser.parse();
     }
-    else if (reader().is(TokenType::FunctionArrow)) {
+    else if (reader().consume(TokenType::Arrow)) {
         function.body = m_expression_parser.parse();
+
+        if (!function.body) {
+            diagnostics().report(make_expected("expression"));
+        }
     }
     else {
         // TODO: Help messages
         // did you mean: function FunctionName (Parameters) (=> expression or {})
-        auto error = make_expected("function block or expression");
+        auto error = make_expected("block or => expression");
         diagnostics().report(error);
+        reader().advance();
     }
 
     return make_ast(std::move(function));

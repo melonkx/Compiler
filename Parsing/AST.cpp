@@ -208,7 +208,15 @@ namespace {
             std::cout << "AddressFrom\n";
 
             PrintChild("Value", value.value, indent + 2);
-        } 
+        }
+        else if constexpr (std::is_same_v<U, AST::Call>)
+        {
+            Indent(indent);
+            std::cout << "Call\n";
+
+            PrintChild("Function", value.function, indent + 2);
+            PrintChild("Arguments", value.arguments, indent + 2);
+        }
     }
 }
 
