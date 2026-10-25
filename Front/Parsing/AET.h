@@ -1,52 +1,51 @@
 #pragma once
 #include <variant>
 #include <memory>
-#include <memory>
 
-// Abstract Error Tree 
-
+// Abstract Error Tree
 struct AET {
     using Ptr = std::unique_ptr<AET>;
 
-#pragma region X
-    struct AlreadyDefined {
-        AST* previous;
-        AST* cause;
-    };
+    struct StatementFailure;
+   
+    struct DefinitionFailure;
+    struct InitializationFailure;
+    struct AlreadyDefined;
 
-    struct Initialization {
-        AST* target;
+    struct ExpressionFailure;
+    struct MissingExpression;
 
-        // const foo = ; Func()
-        //             ^ - ExpressionFailure
+    struct MisplacedToken;
+    struct MissingToken;
 
-        // Error initializing constant 'foo'
-        // Reason: (ExpressionFailure [Cause: WrongPlace])
-        // - The ';' was in the wrong place       
-        // Hint: const foo = Func() ;
-        //                          ^ - Correction
-    };
-
-#pragma endregion
-
-#pragma region Reason
-    struct Expression {
-        Cause cause;
-    };
-    
-    struct TypeMismatch {
-        
-    };
-
-#pragma endregion
-
-#pragma region Causes
-    struct WrongPlace {
-        
-    };
-
-    struct OutOfPlace {
-    
-    };
-#pragma end region
+    std::vector<Ptr> causes;
 };
+
+/* 1] const x = 100;
+ * 2] const x = ; Func()
+ * ^^^^^^^^^|^^^^^^ -> StatementFailure ['x' was already defined and the semi colon was misplaced]
+ *          |   -> MisplacedToken [The ';' should be at the end of the statement]
+ *          -> AlreadyDefined
+ *
+ * Possibility:
+ * 1. The programmer wanted to define 'x'. 
+ * 2. They did not know 'x' was previously defined.
+ * 3. They failed to write 'const x = Func();'
+ *
+ * Handling the error:
+ * 1. Resolve the syntax: const x = Func();
+ * 2. Resolve conflicts: const x2 = Func(); 
+ * 3. Graphically explain what went wrong with evidence, and provide the resolution as a suggestion.
+ *
+ * Error: Failed to define 'x'
+ * Hello.src:2] const x = ; Func() 
+ *                    |   ^- Misplaced
+ *                    -> Previously defined at Hello.src:1
+ *
+ * Previous definition of 'x':
+ * Hello.src:1] const x = 100;
+ *
+ * Suggestion:
+ * const x2 = Func(); 
+ * /
+
