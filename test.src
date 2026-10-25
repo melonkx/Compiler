@@ -1,0 +1,4 @@
+function Main {
+    ;
+    const variable : Int = ; 100;
+}

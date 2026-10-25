@@ -1,8 +1,7 @@
 function MakeArray {
+    # Pythonic style comprehension
     const array = [Foo(x) for x in [0,1,2,3,4]]
 }
-
-function MakeSpanFromAddress (address : Address) => address as Int* .. 4;
 
 function SpansFromPointer {
     # A pointer to a single integer
@@ -28,10 +27,10 @@ function UseEndlessSpan (span : Int*[..]) {
 
     # Good
     const limited = span[..100sz]
-    limited[..$value] = Foo()
+    limited[..$index] = Foo()
 
     # Good
-    span[0sz .. 100sz : $val] = Foo($val)
+    span[0sz .. 100sz : $index] = Foo($index)
 }
 
 function Main {

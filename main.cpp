@@ -1,7 +1,7 @@
 #include <iostream>
-#include "Tokenizer.h"
 
-#include "Parsing/ModuleParser.h"
+#include "Tokenizer.h"
+#include "ModuleParser.h"
 
 
 static void load_keywords(Tokenizer& tokenizer) {
@@ -70,7 +70,7 @@ static void load_symbols(Tokenizer& tokenizer) {
 }
 
 int main() {
-    const auto file = SourceFile::open("hello.src");
+    const auto file = SourceFile::open("test.src");
         
     Tokenizer tokenizer;
     load_keywords(tokenizer);
